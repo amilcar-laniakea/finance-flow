@@ -24,6 +24,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  useSidebar,
 } from "@repo/ui"
 import {
   Home,
@@ -59,6 +60,11 @@ interface AppSidebarProps {
 
 export function AppSidebar({ user }: AppSidebarProps) {
   const pathname = usePathname()
+  const { isMobile, setOpenMobile } = useSidebar()
+
+  function handleNavClick() {
+    if (isMobile) setOpenMobile(false)
+  }
 
   const initials = user.name
     .split(" ")
@@ -100,7 +106,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
               return (
                 <SidebarMenuItem key={href}>
                   <SidebarMenuButton asChild isActive={isActive} tooltip={label}>
-                    <Link href={href}>
+                    <Link href={href} onClick={handleNavClick}>
                       <Icon />
                       <span>{label}</span>
                     </Link>

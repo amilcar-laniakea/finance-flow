@@ -1,5 +1,26 @@
-import { db, expenses, users, incomeSources, incomes, expenseSourceSplits, expenseTypeAmounts, expenseTypes } from "@repo/db";
+import {
+  db,
+  expenses,
+  users,
+  incomeSources,
+  incomes,
+  expenseSourceSplits,
+  expenseTypeAmounts,
+  expenseTypes,
+} from "@repo/db";
 import { isNull, desc, eq, and, sql, inArray } from "drizzle-orm";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@repo/ui";
 import { AddExpenseModal } from "./_components/AddExpenseModal";
 import { EditExpenseModal } from "./_components/EditExpenseModal";
 import { DeleteExpenseButton } from "./_components/DeleteExpenseButton";
@@ -12,9 +33,16 @@ export default async function ExpensesPage() {
       .where(isNull(expenses.deletedAt))
       .orderBy(desc(expenses.occurredAt))
       .limit(100),
-    db.select({ id: users.id, nickname: users.fullName }).from(users).orderBy(users.fullName),
     db
-      .select({ id: incomeSources.id, name: incomeSources.name, color: incomeSources.color })
+      .select({ id: users.id, nickname: users.fullName })
+      .from(users)
+      .orderBy(users.fullName),
+    db
+      .select({
+        id: incomeSources.id,
+        name: incomeSources.name,
+        color: incomeSources.color,
+      })
       .from(incomeSources)
       .where(eq(incomeSources.isActive, true))
       .orderBy(incomeSources.name),
@@ -28,414 +56,503 @@ export default async function ExpensesPage() {
         .select({ total: sql<string>`COALESCE(SUM(amount_usd), 0)` })
         .from(incomes)
         .where(and(eq(incomes.sourceId, s.id), isNull(incomes.deletedAt)));
-
       const [exp] = await db
         .select({ total: sql<string>`COALESCE(SUM(amount_usd), 0)` })
         .from(expenses)
-        .where(and(eq(expenses.incomeSourceId, s.id), isNull(expenses.deletedAt)));
-
+        .where(
+          and(eq(expenses.incomeSourceId, s.id), isNull(expenses.deletedAt)),
+        );
       const [spl] = await db
-        .select({ total: sql<string>`COALESCE(SUM(${expenseSourceSplits.amountUsd}), 0)` })
+        .select({
+          total: sql<string>`COALESCE(SUM(${expenseSourceSplits.amountUsd}), 0)`,
+        })
         .from(expenseSourceSplits)
         .innerJoin(expenses, eq(expenseSourceSplits.expenseId, expenses.id))
-        .where(and(eq(expenseSourceSplits.incomeSourceId, s.id), isNull(expenses.deletedAt)));
-
+        .where(
+          and(
+            eq(expenseSourceSplits.incomeSourceId, s.id),
+            isNull(expenses.deletedAt),
+          ),
+        );
       const balance =
         parseFloat(inc?.total ?? "0") -
         parseFloat(exp?.total ?? "0") -
         parseFloat(spl?.total ?? "0");
-
       return { ...s, balance };
-    })
+    }),
   );
 
-  // Fetch splits for visible rows (for fund-level totals in footer)
   const expIds = rows.map((r) => r.id);
-  const allSplits = expIds.length > 0
-    ? await db
-        .select({
-          expenseId: expenseSourceSplits.expenseId,
-          incomeSourceId: expenseSourceSplits.incomeSourceId,
-          amountUsd: expenseSourceSplits.amountUsd,
-        })
-        .from(expenseSourceSplits)
-        .innerJoin(expenses, eq(expenseSourceSplits.expenseId, expenses.id))
-        .where(and(inArray(expenseSourceSplits.expenseId, expIds), isNull(expenses.deletedAt)))
-    : [];
+  const allSplits =
+    expIds.length > 0
+      ? await db
+          .select({
+            expenseId: expenseSourceSplits.expenseId,
+            incomeSourceId: expenseSourceSplits.incomeSourceId,
+            amountUsd: expenseSourceSplits.amountUsd,
+          })
+          .from(expenseSourceSplits)
+          .innerJoin(expenses, eq(expenseSourceSplits.expenseId, expenses.id))
+          .where(
+            and(
+              inArray(expenseSourceSplits.expenseId, expIds),
+              isNull(expenses.deletedAt),
+            ),
+          )
+      : [];
 
   const splitExpenseIds = new Set(allSplits.map((s) => s.expenseId));
-
-  // Group splits by expenseId for the edit modal
-  const splitsByExpense = new Map<string, { incomeSourceId: string; amountUsd: string }[]>();
+  const splitsByExpense = new Map<
+    string,
+    { incomeSourceId: string; amountUsd: string }[]
+  >();
   for (const s of allSplits) {
     if (!splitsByExpense.has(s.expenseId)) splitsByExpense.set(s.expenseId, []);
-    splitsByExpense.get(s.expenseId)!.push({ incomeSourceId: s.incomeSourceId, amountUsd: s.amountUsd });
+    splitsByExpense
+      .get(s.expenseId)!
+      .push({ incomeSourceId: s.incomeSourceId, amountUsd: s.amountUsd });
   }
 
-  // Fetch type amounts for visible rows
-  const allTypeAmounts = expIds.length > 0
-    ? await db
-        .select({
-          expenseId: expenseTypeAmounts.expenseId,
-          expenseTypeId: expenseTypeAmounts.expenseTypeId,
-          amount: expenseTypeAmounts.amount,
-        })
-        .from(expenseTypeAmounts)
-        .where(inArray(expenseTypeAmounts.expenseId, expIds))
-    : [];
+  const allTypeAmounts =
+    expIds.length > 0
+      ? await db
+          .select({
+            expenseId: expenseTypeAmounts.expenseId,
+            expenseTypeId: expenseTypeAmounts.expenseTypeId,
+            amount: expenseTypeAmounts.amount,
+          })
+          .from(expenseTypeAmounts)
+          .where(inArray(expenseTypeAmounts.expenseId, expIds))
+      : [];
 
-  // Group type amounts by expenseId for the edit modal
-  const typeAmountsByExpense = new Map<string, { expenseTypeId: string; amount: string }[]>();
+  const typeAmountsByExpense = new Map<
+    string,
+    { expenseTypeId: string; amount: string }[]
+  >();
   for (const ta of allTypeAmounts) {
-    if (!typeAmountsByExpense.has(ta.expenseId)) typeAmountsByExpense.set(ta.expenseId, []);
-    typeAmountsByExpense.get(ta.expenseId)!.push({ expenseTypeId: ta.expenseTypeId, amount: ta.amount });
+    if (!typeAmountsByExpense.has(ta.expenseId))
+      typeAmountsByExpense.set(ta.expenseId, []);
+    typeAmountsByExpense
+      .get(ta.expenseId)!
+      .push({ expenseTypeId: ta.expenseTypeId, amount: ta.amount });
   }
 
-  // --- Footer totals ---
-  // By fund
+  // Footer totals
   const fundTotals = new Map<string, number>();
   for (const s of allSplits) {
-    fundTotals.set(s.incomeSourceId, (fundTotals.get(s.incomeSourceId) ?? 0) + parseFloat(s.amountUsd));
+    fundTotals.set(
+      s.incomeSourceId,
+      (fundTotals.get(s.incomeSourceId) ?? 0) + parseFloat(s.amountUsd),
+    );
   }
   for (const e of rows) {
     if (e.incomeSourceId && !splitExpenseIds.has(e.id)) {
-      fundTotals.set(e.incomeSourceId, (fundTotals.get(e.incomeSourceId) ?? 0) + parseFloat(e.amountUsd));
+      fundTotals.set(
+        e.incomeSourceId,
+        (fundTotals.get(e.incomeSourceId) ?? 0) + parseFloat(e.amountUsd),
+      );
     }
   }
 
-  // Build type lookup map
   const typeMap = Object.fromEntries(rawTypes.map((t) => [t.id, t]));
-
-  // By type — keyed by expenseTypeId
   const typeTotals = new Map<string, number>();
   for (const ta of allTypeAmounts) {
-    typeTotals.set(ta.expenseTypeId, (typeTotals.get(ta.expenseTypeId) ?? 0) + parseFloat(ta.amount));
+    typeTotals.set(
+      ta.expenseTypeId,
+      (typeTotals.get(ta.expenseTypeId) ?? 0) + parseFloat(ta.amount),
+    );
   }
 
-  // Grand totals
-  const grandTotalUsd = rows.reduce((sum, e) => sum + parseFloat(e.amountUsd), 0);
-  const grandTotalBs = rows.reduce((sum, e) => sum + parseFloat(e.amountBs ?? "0"), 0);
-
-  const memberMap = Object.fromEntries(members.map((m) => [m.id, m.nickname ?? "—"]));
+  const grandTotalUsd = rows.reduce(
+    (sum, e) => sum + parseFloat(e.amountUsd),
+    0,
+  );
+  const grandTotalBs = rows.reduce(
+    (sum, e) => sum + parseFloat(e.amountBs ?? "0"),
+    0,
+  );
+  const memberMap = Object.fromEntries(
+    members.map((m) => [m.id, m.nickname ?? "—"]),
+  );
   const sourceMap = Object.fromEntries(sources.map((s) => [s.id, s]));
-
-  // Type summary (used in footer) — keyed by expenseTypeId
   const classifiedTotal = [...typeTotals.values()].reduce((s, v) => s + v, 0);
   const unclassifiedTotal = grandTotalUsd - classifiedTotal;
   const sortedTypes = [...typeTotals.entries()].sort((a, b) => b[1] - a[1]);
 
-  // By member
   const memberTotals = new Map<string, { name: string; total: number }>();
   for (const e of rows) {
     if (e.memberId) {
       const name = memberMap[e.memberId] ?? "—";
       const prev = memberTotals.get(e.memberId) ?? { name, total: 0 };
-      memberTotals.set(e.memberId, { name, total: prev.total + parseFloat(e.amountUsd) });
+      memberTotals.set(e.memberId, {
+        name,
+        total: prev.total + parseFloat(e.amountUsd),
+      });
     }
   }
-  const sortedMembers = [...memberTotals.entries()].sort((a, b) => b[1].total - a[1].total);
+  const sortedMembers = [...memberTotals.entries()].sort(
+    (a, b) => b[1].total - a[1].total,
+  );
   const unassignedTotal = rows
     .filter((e) => !e.memberId)
     .reduce((s, e) => s + parseFloat(e.amountUsd), 0);
 
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
-        <h1 style={{ fontSize: "24px", fontWeight: 700 }}>Gastos</h1>
-        <AddExpenseModal members={members} sources={sources} expenseTypes={rawTypes} />
+    <div className="flex min-w-0 flex-col gap-6">
+      {/* Page header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Gastos</h1>
+        <AddExpenseModal
+          members={members}
+          sources={sources}
+          expenseTypes={rawTypes}
+        />
       </div>
 
-      <div style={{ background: "#fff", borderRadius: "8px", border: "1px solid #E2E8F0" }}>
+      {/* Table */}
+      <Card className="min-w-0">
         {rows.length === 0 ? (
-          <p style={{ padding: "32px", color: "#94A3B8", textAlign: "center" }}>
+          <CardContent className="py-12 text-center text-sm text-muted-foreground">
             Aún no hay gastos. ¡Agrega el primero!
-          </p>
+          </CardContent>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
-            <thead>
-              <tr style={{ borderBottom: "1px solid #E2E8F0", color: "#64748B", background: "#F8FAFC" }}>
-                <th style={{ textAlign: "left", padding: "12px 16px" }}>Descripción</th>
-                <th style={{ textAlign: "left", padding: "12px 16px" }}>Tipo</th>
-                <th style={{ textAlign: "left", padding: "12px 16px" }}>Comercio</th>
-                <th style={{ textAlign: "left", padding: "12px 16px" }}>Miembro</th>
-                <th style={{ textAlign: "right", padding: "12px 16px" }}>USD</th>
-                <th style={{ textAlign: "right", padding: "12px 16px" }}>Bs</th>
-                <th style={{ textAlign: "right", padding: "12px 16px" }}>Fecha</th>
-                <th style={{ textAlign: "center", padding: "12px 16px", width: "80px" }} />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((e) => {
-                const src = e.incomeSourceId ? sourceMap[e.incomeSourceId] : null;
-                const expTypAmts = typeAmountsByExpense.get(e.id) ?? [];
-
-                return (
-                  <tr key={e.id} style={{ borderBottom: "1px solid #F1F5F9" }}>
-                    <td style={{ padding: "12px 16px" }}>
-                      <span style={{ fontWeight: 500 }}>{e.description}</span>
-                      {src && (
-                        <span style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "4px",
-                          marginLeft: "8px",
-                          fontSize: "11px",
-                          padding: "1px 7px",
-                          borderRadius: "99px",
-                          background: "#F0FDF4",
-                          color: "#16A34A",
-                        }}>
-                          <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: src.color ?? "#16A34A", display: "inline-block" }} />
-                          {src.name}
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ padding: "12px 16px" }}>
-                      {expTypAmts.length === 0 ? (
-                        <span style={{ color: "#CBD5E1", fontSize: "12px" }}>—</span>
-                      ) : (
-                        <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
-                          {expTypAmts.map((ta, i) => {
-                            const tinfo = typeMap[ta.expenseTypeId];
-                            const tcolor = tinfo?.color ?? "#7C3AED";
-                            return (
-                              <span key={i} style={{
-                                fontSize: "11px", padding: "1px 7px", borderRadius: "99px",
-                                background: `${tcolor}22`,
-                                color: tcolor, fontWeight: 600, whiteSpace: "nowrap",
-                              }}>
-                                {tinfo?.name ?? "?"} · ${parseFloat(ta.amount).toFixed(2)}
-                              </span>
-                            );
-                          })}
+          <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Descripción</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Comercio</TableHead>
+                  <TableHead>Miembro</TableHead>
+                  <TableHead className="text-right">USD</TableHead>
+                  <TableHead className="text-right">Bs</TableHead>
+                  <TableHead className="text-right">Fecha</TableHead>
+                  <TableHead className="w-20" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((e) => {
+                  const src = e.incomeSourceId
+                    ? sourceMap[e.incomeSourceId]
+                    : null;
+                  const expTypAmts = typeAmountsByExpense.get(e.id) ?? [];
+                  return (
+                    <TableRow key={e.id}>
+                      <TableCell>
+                        <span className="font-medium">{e.description}</span>
+                        {src && (
+                          <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-px text-xs font-medium text-green-700">
+                            <span
+                              className="inline-block size-1.5 rounded-full"
+                              style={{ background: src.color ?? "#16A34A" }}
+                            />
+                            {src.name}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {expTypAmts.length === 0 ? (
+                          <span className="text-xs text-muted-foreground/40">
+                            —
+                          </span>
+                        ) : (
+                          <div className="flex flex-wrap gap-1">
+                            {expTypAmts.map((ta, i) => {
+                              const tinfo = typeMap[ta.expenseTypeId];
+                              const tcolor = tinfo?.color ?? "#7C3AED";
+                              return (
+                                <span
+                                  key={i}
+                                  className="rounded-full px-2 py-px text-xs font-semibold whitespace-nowrap"
+                                  style={{
+                                    background: `${tcolor}22`,
+                                    color: tcolor,
+                                  }}
+                                >
+                                  {tinfo?.name ?? "?"} · $
+                                  {parseFloat(ta.amount).toFixed(2)}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {e.merchant ?? "—"}
+                      </TableCell>
+                      <TableCell>
+                        {e.memberId ? (
+                          <span className="rounded-full bg-muted px-2 py-px text-xs font-medium text-muted-foreground">
+                            {memberMap[e.memberId] ?? "—"}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right font-bold text-red-600">
+                        ${e.amountUsd}
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {e.amountBs ? `${e.amountBs} Bs` : "—"}
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {e.occurredAt
+                          ? new Date(e.occurredAt).toLocaleDateString("es-VE")
+                          : "—"}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-center gap-0.5">
+                          <EditExpenseModal
+                            expense={{
+                              id: e.id,
+                              description: e.description,
+                              merchant: e.merchant,
+                              memberId: e.memberId,
+                              amountUsd: e.amountUsd,
+                              amountBs: e.amountBs,
+                              exchangeRate: e.exchangeRate,
+                              period: e.period,
+                            }}
+                            expenseSplits={(
+                              splitsByExpense.get(e.id) ?? []
+                            ).map((s) => ({
+                              incomeSourceId: s.incomeSourceId,
+                              amountUsd: s.amountUsd,
+                              sourceName:
+                                sourceMap[s.incomeSourceId]?.name ??
+                                s.incomeSourceId,
+                              sourceColor:
+                                sourceMap[s.incomeSourceId]?.color ?? null,
+                            }))}
+                            initialTypeAmounts={
+                              typeAmountsByExpense.get(e.id) ?? []
+                            }
+                            members={members}
+                            sources={sources}
+                            expenseTypes={rawTypes}
+                          />
+                          <DeleteExpenseButton
+                            id={e.id}
+                            label={e.description}
+                          />
                         </div>
-                      )}
-                    </td>
-                    <td style={{ padding: "12px 16px", color: "#64748B" }}>{e.merchant ?? "—"}</td>
-                    <td style={{ padding: "12px 16px" }}>
-                      {e.memberId ? (
-                        <span style={{ fontSize: "12px", background: "#F1F5F9", color: "#475569", padding: "2px 8px", borderRadius: "99px" }}>
-                          {memberMap[e.memberId] ?? "—"}
-                        </span>
-                      ) : "—"}
-                    </td>
-                    <td style={{ padding: "12px 16px", textAlign: "right", color: "#DC2626", fontWeight: 700 }}>
-                      ${e.amountUsd}
-                    </td>
-                    <td style={{ padding: "12px 16px", textAlign: "right", color: "#94A3B8" }}>
-                      {e.amountBs ? `${e.amountBs} Bs` : "—"}
-                    </td>
-                    <td style={{ padding: "12px 16px", textAlign: "right", color: "#64748B" }}>
-                      {e.occurredAt ? new Date(e.occurredAt).toLocaleDateString("es-VE") : "—"}
-                    </td>
-                    <td style={{ padding: "12px 8px", textAlign: "center" }}>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "2px" }}>
-                        <EditExpenseModal
-                          expense={{
-                            id: e.id,
-                            description: e.description,
-                            merchant: e.merchant,
-                            memberId: e.memberId,
-                            amountUsd: e.amountUsd,
-                            amountBs: e.amountBs,
-                            exchangeRate: e.exchangeRate,
-                            period: e.period,
-                          }}
-                          expenseSplits={(splitsByExpense.get(e.id) ?? []).map((s) => ({
-                            incomeSourceId: s.incomeSourceId,
-                            amountUsd: s.amountUsd,
-                            sourceName: sourceMap[s.incomeSourceId]?.name ?? s.incomeSourceId,
-                            sourceColor: sourceMap[s.incomeSourceId]?.color ?? null,
-                          }))}
-                          initialTypeAmounts={typeAmountsByExpense.get(e.id) ?? []}
-                          members={members}
-                          sources={sources}
-                          expenseTypes={rawTypes}
-                        />
-                        <DeleteExpenseButton id={e.id} label={e.description} />
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
         )}
-      </div>
+      </Card>
 
-      {/* ── Summary footer ── */}
+      {/* Summary footer */}
       {rows.length > 0 && (
-        <div style={{
-          marginTop: "24px",
-          background: "#fff",
-          borderRadius: "8px",
-          border: "1px solid #E2E8F0",
-          overflow: "hidden",
-        }}>
-          {/* Header */}
-          <div style={{
-            background: "#F8FAFC",
-            borderBottom: "1px solid #E2E8F0",
-            padding: "12px 20px",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}>
-            <span style={{ fontSize: "13px", fontWeight: 700, color: "#374151" }}>
-              Resumen de gastos ({rows.length} registros)
-            </span>
-            <span style={{ fontSize: "13px", color: "#64748B" }}>
-              últimos 100 movimientos
-            </span>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0" }}>
-            {/* By fund */}
-            <div style={{ padding: "20px", borderRight: "1px solid #F1F5F9" }}>
-              <p style={{ fontSize: "12px", fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "12px" }}>
-                Por fondo
-              </p>
-              {fundTotals.size === 0 ? (
-                <p style={{ fontSize: "13px", color: "#CBD5E1" }}>Sin asignación de fondos</p>
-              ) : (
-                [...fundTotals.entries()]
-                  .sort((a, b) => b[1] - a[1])
-                  .map(([sourceId, total]) => {
-                    const src = sourceMap[sourceId];
-                    return (
-                      <div key={sourceId} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                        <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", color: "#374151" }}>
-                          <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: src?.color ?? "#94A3B8", flexShrink: 0, display: "inline-block" }} />
-                          {src?.name ?? sourceId}
-                        </span>
-                        <span style={{ fontSize: "13px", fontWeight: 700, color: "#DC2626" }}>
-                          ${total.toFixed(2)}
-                        </span>
-                      </div>
-                    );
-                  })
-              )}
+        <Card>
+          <CardHeader className="border-b pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-bold text-foreground">
+                Resumen de gastos ({rows.length} registros)
+              </CardTitle>
+              <span className="text-xs text-muted-foreground">
+                últimos 100 movimientos
+              </span>
             </div>
-
-            {/* By type */}
-            <div style={{ padding: "20px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "14px" }}>
-                <p style={{ fontSize: "12px", fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                  Por tipo
+          </CardHeader>
+          <CardContent className="p-0">
+            {/* By fund + By type */}
+            <div className="grid grid-cols-1 divide-y md:grid-cols-2 md:divide-x md:divide-y-0">
+              {/* By fund */}
+              <div className="p-5">
+                <p className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Por fondo
                 </p>
-                {classifiedTotal > 0 && (
-                  <span style={{ fontSize: "11px", color: "#94A3B8" }}>
-                    ${classifiedTotal.toFixed(2)} clasificado de ${grandTotalUsd.toFixed(2)}
-                  </span>
+                {fundTotals.size === 0 ? (
+                  <p className="text-sm text-muted-foreground/40">
+                    Sin asignación de fondos
+                  </p>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {[...fundTotals.entries()]
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([sourceId, total]) => {
+                        const src = sourceMap[sourceId];
+                        return (
+                          <div
+                            key={sourceId}
+                            className="flex items-center justify-between"
+                          >
+                            <span className="flex items-center gap-1.5 text-sm text-foreground">
+                              <span
+                                className="inline-block size-2 shrink-0 rounded-full"
+                                style={{ background: src?.color ?? "#94A3B8" }}
+                              />
+                              {src?.name ?? sourceId}
+                            </span>
+                            <span className="text-sm font-bold text-red-600">
+                              ${total.toFixed(2)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                  </div>
                 )}
               </div>
 
-              {typeTotals.size === 0 ? (
-                <p style={{ fontSize: "13px", color: "#CBD5E1" }}>Sin clasificación por tipo</p>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                  {sortedTypes.map(([expenseTypeId, total]) => {
-                    const tinfo = typeMap[expenseTypeId];
-                    const tname = tinfo?.name ?? "?";
-                    const tcolor = tinfo?.color ?? "#7C3AED";
-                    const pct = classifiedTotal > 0 ? (total / classifiedTotal) * 100 : 0;
-                    return (
-                      <div key={expenseTypeId}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
-                          <span style={{
-                            fontSize: "12px", padding: "1px 8px", borderRadius: "99px",
-                            background: `${tcolor}22`, color: tcolor, fontWeight: 600,
-                          }}>
-                            {tname}
-                          </span>
-                          <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <span style={{ fontSize: "11px", color: "#94A3B8" }}>{pct.toFixed(1)}%</span>
-                            <span style={{ fontSize: "13px", fontWeight: 700, color: "#DC2626" }}>${total.toFixed(2)}</span>
-                          </span>
-                        </div>
-                        <div style={{ height: "4px", borderRadius: "99px", background: `${tcolor}22`, overflow: "hidden" }}>
-                          <div style={{ height: "100%", width: `${pct}%`, borderRadius: "99px", background: tcolor }} />
-                        </div>
-                      </div>
-                    );
-                  })}
+              {/* By type */}
+              <div className="p-5">
+                <div className="mb-3 flex items-baseline justify-between">
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Por tipo
+                  </p>
+                  {classifiedTotal > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      ${classifiedTotal.toFixed(2)} de $
+                      {grandTotalUsd.toFixed(2)}
+                    </span>
+                  )}
                 </div>
-              )}
-
-              {classifiedTotal > 0 && unclassifiedTotal > 0.001 && (
-                <div style={{ marginTop: "12px", paddingTop: "10px", borderTop: "1px solid #F1F5F9", display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#94A3B8" }}>
-                  <span>Sin clasificar</span>
-                  <span>${unclassifiedTotal.toFixed(2)}</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* By member */}
-          {sortedMembers.length > 0 && (
-            <div style={{ borderTop: "1px solid #E2E8F0", padding: "20px" }}>
-              <p style={{ fontSize: "12px", fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "14px" }}>
-                Por miembro
-              </p>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "10px" }}>
-                {sortedMembers.map(([memberId, { name, total }]) => {
-                  const pct = grandTotalUsd > 0 ? (total / grandTotalUsd) * 100 : 0;
-                  return (
-                    <div key={memberId} style={{ background: "#F8FAFC", borderRadius: "8px", padding: "12px 14px" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                        <span style={{
-                          fontSize: "12px", padding: "1px 8px", borderRadius: "99px",
-                          background: "#DBEAFE", color: "#1D4ED8", fontWeight: 600,
-                        }}>
-                          {name}
-                        </span>
-                        <span style={{ fontSize: "11px", color: "#94A3B8" }}>{pct.toFixed(1)}%</span>
-                      </div>
-                      <p style={{ fontSize: "15px", fontWeight: 700, color: "#DC2626" }}>${total.toFixed(2)}</p>
-                      <div style={{ height: "3px", borderRadius: "99px", background: "#BFDBFE", marginTop: "8px", overflow: "hidden" }}>
-                        <div style={{ height: "100%", width: `${pct}%`, borderRadius: "99px", background: "#2563EB" }} />
-                      </div>
-                    </div>
-                  );
-                })}
-                {unassignedTotal > 0.001 && (
-                  <div style={{ background: "#F8FAFC", borderRadius: "8px", padding: "12px 14px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                      <span style={{ fontSize: "12px", color: "#94A3B8", fontStyle: "italic" }}>Sin asignar</span>
-                      <span style={{ fontSize: "11px", color: "#94A3B8" }}>
-                        {grandTotalUsd > 0 ? ((unassignedTotal / grandTotalUsd) * 100).toFixed(1) : "0"}%
-                      </span>
-                    </div>
-                    <p style={{ fontSize: "15px", fontWeight: 700, color: "#94A3B8" }}>${unassignedTotal.toFixed(2)}</p>
-                    <div style={{ height: "3px", borderRadius: "99px", background: "#E2E8F0", marginTop: "8px", overflow: "hidden" }}>
-                      <div style={{ height: "100%", width: `${grandTotalUsd > 0 ? (unassignedTotal / grandTotalUsd) * 100 : 0}%`, borderRadius: "99px", background: "#CBD5E1" }} />
-                    </div>
+                {typeTotals.size === 0 ? (
+                  <p className="text-sm text-muted-foreground/40">
+                    Sin clasificación por tipo
+                  </p>
+                ) : (
+                  <div className="flex flex-col gap-2.5">
+                    {sortedTypes.map(([expenseTypeId, total]) => {
+                      const tinfo = typeMap[expenseTypeId];
+                      const tcolor = tinfo?.color ?? "#7C3AED";
+                      const pct =
+                        classifiedTotal > 0
+                          ? (total / classifiedTotal) * 100
+                          : 0;
+                      return (
+                        <div key={expenseTypeId}>
+                          <div className="mb-1 flex items-center justify-between">
+                            <span
+                              className="rounded-full px-2 py-px text-xs font-semibold"
+                              style={{
+                                background: `${tcolor}22`,
+                                color: tcolor,
+                              }}
+                            >
+                              {tinfo?.name ?? "?"}
+                            </span>
+                            <span className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">
+                                {pct.toFixed(1)}%
+                              </span>
+                              <span className="text-sm font-bold text-red-600">
+                                ${total.toFixed(2)}
+                              </span>
+                            </span>
+                          </div>
+                          <div
+                            className="h-1 overflow-hidden rounded-full"
+                            style={{ background: `${tcolor}22` }}
+                          >
+                            <div
+                              className="h-full rounded-full"
+                              style={{ width: `${pct}%`, background: tcolor }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {classifiedTotal > 0 && unclassifiedTotal > 0.001 && (
+                  <div className="mt-3 flex justify-between border-t pt-2.5 text-xs text-muted-foreground">
+                    <span>Sin clasificar</span>
+                    <span>${unclassifiedTotal.toFixed(2)}</span>
                   </div>
                 )}
               </div>
             </div>
-          )}
 
-          {/* Grand total bar */}
-          <div style={{
-            borderTop: "2px solid #E2E8F0",
-            padding: "16px 20px",
-            display: "flex",
-            justifyContent: "flex-end",
-            alignItems: "center",
-            gap: "32px",
-            background: "#FAFAFA",
-          }}>
-            {grandTotalBs > 0 && (
-              <span style={{ fontSize: "14px", color: "#64748B" }}>
-                Total Bs: <strong>{grandTotalBs.toLocaleString("es-VE", { minimumFractionDigits: 2 })} Bs</strong>
-              </span>
+            {/* By member */}
+            {sortedMembers.length > 0 && (
+              <div className="border-t p-5">
+                <p className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Por miembro
+                </p>
+                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+                  {sortedMembers.map(([memberId, { name, total }]) => {
+                    const pct =
+                      grandTotalUsd > 0 ? (total / grandTotalUsd) * 100 : 0;
+                    return (
+                      <div
+                        key={memberId}
+                        className="rounded-lg bg-muted/50 p-3"
+                      >
+                        <div className="mb-1.5 flex items-center justify-between">
+                          <span className="rounded-full bg-blue-100 px-2 py-px text-xs font-semibold text-blue-700">
+                            {name}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {pct.toFixed(1)}%
+                          </span>
+                        </div>
+                        <p className="text-base font-bold text-red-600">
+                          ${total.toFixed(2)}
+                        </p>
+                        <div className="mt-2 h-1 overflow-hidden rounded-full bg-blue-100">
+                          <div
+                            className="h-full rounded-full bg-blue-600"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {unassignedTotal > 0.001 && (
+                    <div className="rounded-lg bg-muted/50 p-3">
+                      <div className="mb-1.5 flex items-center justify-between">
+                        <span className="text-xs italic text-muted-foreground">
+                          Sin asignar
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {grandTotalUsd > 0
+                            ? ((unassignedTotal / grandTotalUsd) * 100).toFixed(
+                                1,
+                              )
+                            : "0"}
+                          %
+                        </span>
+                      </div>
+                      <p className="text-base font-bold text-muted-foreground">
+                        ${unassignedTotal.toFixed(2)}
+                      </p>
+                      <div className="mt-2 h-1 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full bg-muted-foreground/40"
+                          style={{
+                            width: `${grandTotalUsd > 0 ? (unassignedTotal / grandTotalUsd) * 100 : 0}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
-            <span style={{ fontSize: "16px", color: "#DC2626" }}>
-              Total USD: <strong>${grandTotalUsd.toFixed(2)}</strong>
-            </span>
-          </div>
-        </div>
+
+            {/* Grand total */}
+            <div className="flex items-center justify-end gap-8 border-t-2 bg-muted/30 px-5 py-4">
+              {grandTotalBs > 0 && (
+                <span className="text-sm text-muted-foreground">
+                  Total Bs:{" "}
+                  <strong>
+                    {grandTotalBs.toLocaleString("es-VE", {
+                      minimumFractionDigits: 2,
+                    })}{" "}
+                    Bs
+                  </strong>
+                </span>
+              )}
+              <span className="text-base text-red-600">
+                Total USD: <strong>${grandTotalUsd.toFixed(2)}</strong>
+              </span>
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
