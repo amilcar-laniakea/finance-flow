@@ -8,14 +8,14 @@ export type MemberExpense = {
   merchant: string | null;
   amountUsd: string;
   amountBs: string | null;
-  occurredAt: Date | null;
+  occurredAt: Date | string | null;
 };
 
 export type MemberDistribution = {
   id: string;
   amountUsd: string;
   incomeDescription: string | null;
-  incomePeriod: Date | null;
+  incomePeriod: Date | string | null;
   sourceName: string | null;
 };
 
@@ -24,7 +24,7 @@ export type MemberTransfer = {
   direction: "in" | "out";
   amountUsd: string;
   description: string | null;
-  period: Date | null;
+  period: Date | string | null;
   counterpartName: string | null;
 };
 
