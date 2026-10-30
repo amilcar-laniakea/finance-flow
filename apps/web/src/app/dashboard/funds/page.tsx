@@ -1,14 +1,21 @@
 import { db, incomeSources, incomes, expenses, expenseSourceSplits, fundTransfers } from "@repo/db";
-import { eq, and, isNull, sql } from "drizzle-orm";
+import { eq, and, isNull, sql, or } from "drizzle-orm";
+import { redirect } from "next/navigation";
+import { getInstanceContext } from "@/lib/getInstanceContext";
 import { AddSourceModal } from "./_components/AddSourceModal";
 import { EditSourceModal } from "./_components/EditSourceModal";
 import { DeleteSourceButton } from "./_components/DeleteSourceButton";
 
 export default async function FundsPage() {
+  const ctx = await getInstanceContext();
+  if (!ctx || !ctx.canRead) redirect("/dashboard");
+
+  const hid = ctx.activeHousehold.id;
+
   const sources = await db
     .select()
     .from(incomeSources)
-    .where(eq(incomeSources.isActive, true))
+    .where(and(eq(incomeSources.isActive, true), eq(incomeSources.householdId, hid)))
     .orderBy(incomeSources.createdAt);
 
   const withBalances = await Promise.all(
@@ -32,7 +39,7 @@ export default async function FundsPage() {
       const [tin] = await db
         .select({ total: sql<string>`COALESCE(SUM(amount_usd), 0)` })
         .from(fundTransfers)
-        .where(and(eq(fundTransfers.toSourceId, s.id), isNull(fundTransfers.deletedAt)));
+        .where(and(eq(fundTransfers.toSourceId, s.id), isNull(fundTransfers.deletedAt), or(eq(fundTransfers.householdId, hid), eq(fundTransfers.toHouseholdId, hid))));
       const [tout] = await db
         .select({ total: sql<string>`COALESCE(SUM(amount_usd), 0)` })
         .from(fundTransfers)

@@ -13,6 +13,8 @@ export const households = pgTable("households", {
   name: varchar("name", { length: 255 }).notNull(),
   ownerId: uuid("owner_id").references(() => users.id),
   monthlyIncomeUsd: decimal("monthly_income_usd", { precision: 12, scale: 2 }),
+  isMain: boolean("is_main").notNull().default(false),
+  isPersonal: boolean("is_personal").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 

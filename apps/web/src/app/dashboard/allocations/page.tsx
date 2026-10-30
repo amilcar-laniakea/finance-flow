@@ -1,5 +1,7 @@
 import { db, allocations, householdMembers } from "@repo/db";
 import { eq, gte, lte, and } from "drizzle-orm";
+import { redirect } from "next/navigation";
+import { getInstanceContext } from "@/lib/getInstanceContext";
 
 function currentPeriod() {
   const now = new Date();
@@ -11,6 +13,10 @@ function currentPeriod() {
 }
 
 export default async function AllocationsPage() {
+  const ctx = await getInstanceContext();
+  if (!ctx || !ctx.canRead) redirect("/dashboard");
+
+  const hid = ctx.activeHousehold.id;
   const period = currentPeriod();
 
   const rows = await db
@@ -26,6 +32,7 @@ export default async function AllocationsPage() {
     .leftJoin(householdMembers, eq(allocations.memberId, householdMembers.id))
     .where(
       and(
+        eq(allocations.householdId, hid),
         gte(allocations.period, period.start),
         lte(allocations.period, period.end)
       )

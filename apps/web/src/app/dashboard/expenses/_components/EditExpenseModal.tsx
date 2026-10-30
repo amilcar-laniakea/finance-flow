@@ -10,7 +10,7 @@ import {
 
 type Member = { id: string; nickname: string | null };
 type Source = { id: string; name: string; color: string | null; balance: number };
-type ExpenseType = { id: string; name: string; color: string | null };
+type ExpenseType = { id: string; name: string; color: string | null; householdId: string | null };
 type SplitInfo = { incomeSourceId: string; amountUsd: string; sourceName: string; sourceColor: string | null };
 type TypeRow = { expenseTypeId: string; amount: string };
 
@@ -176,9 +176,15 @@ export function EditExpenseModal({
                       className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
                     >
                       <option value="">— Seleccionar tipo —</option>
-                      {avail.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                      {avail.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name}{t.householdId === null ? " (Principal)" : ""}
+                        </option>
+                      ))}
                       {row.expenseTypeId && !avail.find((t) => t.id === row.expenseTypeId) && selected && (
-                        <option value={row.expenseTypeId}>{selected.name}</option>
+                        <option value={row.expenseTypeId}>
+                          {selected.name}{selected.householdId === null ? " (Principal)" : ""}
+                        </option>
                       )}
                     </select>
                     <Input

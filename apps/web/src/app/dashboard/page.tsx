@@ -1,9 +1,10 @@
-import { auth } from "@clerk/nextjs/server";
 import {
   db, expenses, incomes, users, incomeSources,
   incomeDistributions, expenseSourceSplits, fundTransfers, expenseTypeAmounts, expenseTypes,
 } from "@repo/db";
-import { isNull, and, gte, lte, sql, desc, eq } from "drizzle-orm";
+import { isNull, and, gte, lte, sql, desc, eq, or } from "drizzle-orm";
+import { redirect } from "next/navigation";
+import { getInstanceContext } from "@/lib/getInstanceContext";
 import {
   Card, CardContent, CardHeader, CardTitle,
   Progress,
@@ -27,9 +28,10 @@ function prevPeriod() {
 }
 
 export default async function DashboardPage() {
-  const { userId } = await auth();
-  if (!userId) return null;
+  const ctx = await getInstanceContext();
+  if (!ctx || !ctx.canRead) redirect("/sign-in");
 
+  const hid = ctx.activeHousehold.id;
   const period = currentPeriod();
   const prev = prevPeriod();
 
@@ -44,21 +46,21 @@ export default async function DashboardPage() {
     expenseCount, maxExpense,
   ] = await Promise.all([
     db.select({ total: sql<string>`COALESCE(SUM(amount_usd), 0)` }).from(expenses)
-      .where(and(isNull(expenses.deletedAt), gte(expenses.occurredAt, period.start), lte(expenses.occurredAt, period.end))),
+      .where(and(isNull(expenses.deletedAt), eq(expenses.householdId, hid), gte(expenses.occurredAt, period.start), lte(expenses.occurredAt, period.end))),
     db.select({ total: sql<string>`COALESCE(SUM(amount_usd), 0)` }).from(incomes)
-      .where(and(isNull(incomes.deletedAt), gte(incomes.occurredAt, period.start), lte(incomes.occurredAt, period.end))),
+      .where(and(isNull(incomes.deletedAt), eq(incomes.householdId, hid), gte(incomes.occurredAt, period.start), lte(incomes.occurredAt, period.end))),
     db.select({ total: sql<string>`COALESCE(SUM(amount_usd), 0)` }).from(expenses)
-      .where(and(isNull(expenses.deletedAt), gte(expenses.occurredAt, prev.start), lte(expenses.occurredAt, prev.end))),
+      .where(and(isNull(expenses.deletedAt), eq(expenses.householdId, hid), gte(expenses.occurredAt, prev.start), lte(expenses.occurredAt, prev.end))),
     db.select({ total: sql<string>`COALESCE(SUM(amount_usd), 0)` }).from(incomes)
-      .where(and(isNull(incomes.deletedAt), gte(incomes.occurredAt, prev.start), lte(incomes.occurredAt, prev.end))),
+      .where(and(isNull(incomes.deletedAt), eq(incomes.householdId, hid), gte(incomes.occurredAt, prev.start), lte(incomes.occurredAt, prev.end))),
     db.select({ memberId: expenses.memberId, total: sql<string>`COALESCE(SUM(amount_usd), 0)` })
       .from(expenses)
-      .where(and(isNull(expenses.deletedAt), gte(expenses.occurredAt, period.start), lte(expenses.occurredAt, period.end)))
+      .where(and(isNull(expenses.deletedAt), eq(expenses.householdId, hid), gte(expenses.occurredAt, period.start), lte(expenses.occurredAt, period.end)))
       .groupBy(expenses.memberId),
     db.select({ memberId: incomeDistributions.memberId, total: sql<string>`COALESCE(SUM(${incomeDistributions.amountUsd}), 0)` })
       .from(incomeDistributions)
       .innerJoin(incomes, eq(incomeDistributions.incomeId, incomes.id))
-      .where(and(gte(incomes.period, period.start), lte(incomes.period, period.end), isNull(incomes.deletedAt)))
+      .where(and(eq(incomes.householdId, hid), gte(incomes.period, period.start), lte(incomes.period, period.end), isNull(incomes.deletedAt)))
       .groupBy(incomeDistributions.memberId),
     db.select({
         typeName: expenseTypes.name,
@@ -68,30 +70,32 @@ export default async function DashboardPage() {
       .from(expenseTypeAmounts)
       .innerJoin(expenses, eq(expenseTypeAmounts.expenseId, expenses.id))
       .innerJoin(expenseTypes, eq(expenseTypeAmounts.expenseTypeId, expenseTypes.id))
-      .where(and(isNull(expenses.deletedAt), gte(expenses.occurredAt, period.start), lte(expenses.occurredAt, period.end)))
+      .where(and(isNull(expenses.deletedAt), eq(expenses.householdId, hid), gte(expenses.occurredAt, period.start), lte(expenses.occurredAt, period.end)))
       .groupBy(expenseTypeAmounts.expenseTypeId, expenseTypes.name, expenseTypes.color),
     db.select({ id: expenses.id, description: expenses.description, merchant: expenses.merchant, amountUsd: expenses.amountUsd, occurredAt: expenses.occurredAt, memberId: expenses.memberId })
-      .from(expenses).where(isNull(expenses.deletedAt)).orderBy(desc(expenses.occurredAt)).limit(6),
+      .from(expenses).where(and(isNull(expenses.deletedAt), eq(expenses.householdId, hid))).orderBy(desc(expenses.occurredAt)).limit(6),
     db.select({ id: incomes.id, description: incomes.description, amountUsd: incomes.amountUsd, occurredAt: incomes.occurredAt })
-      .from(incomes).where(isNull(incomes.deletedAt)).orderBy(desc(incomes.occurredAt)).limit(6),
-    db.select({ id: incomeSources.id, name: incomeSources.name, color: incomeSources.color }).from(incomeSources).where(eq(incomeSources.isActive, true)),
-    db.select({ id: users.id, name: users.fullName }).from(users).orderBy(users.fullName),
+      .from(incomes).where(and(isNull(incomes.deletedAt), eq(incomes.householdId, hid))).orderBy(desc(incomes.occurredAt)).limit(6),
+    db.select({ id: incomeSources.id, name: incomeSources.name, color: incomeSources.color }).from(incomeSources).where(and(eq(incomeSources.isActive, true), eq(incomeSources.householdId, hid))),
+    db.select({ id: users.id, name: users.fullName }).from(users)
+      .where(ctx.activeHousehold.isPersonal ? eq(users.personalHouseholdId, hid) : undefined)
+      .orderBy(users.fullName),
     db.select({ count: sql<string>`COUNT(*)` }).from(expenses)
-      .where(and(isNull(expenses.deletedAt), gte(expenses.occurredAt, period.start), lte(expenses.occurredAt, period.end))),
+      .where(and(isNull(expenses.deletedAt), eq(expenses.householdId, hid), gte(expenses.occurredAt, period.start), lte(expenses.occurredAt, period.end))),
     db.select({ amount: expenses.amountUsd, description: expenses.description })
       .from(expenses)
-      .where(and(isNull(expenses.deletedAt), gte(expenses.occurredAt, period.start), lte(expenses.occurredAt, period.end)))
+      .where(and(isNull(expenses.deletedAt), eq(expenses.householdId, hid), gte(expenses.occurredAt, period.start), lte(expenses.occurredAt, period.end)))
       .orderBy(desc(expenses.amountUsd)).limit(1),
   ]);
 
   // ── Fund balances (including transfers) ─────────────────────────
   const fundBalances = await Promise.all(
     allSources.map(async (s) => {
-      const [inc] = await db.select({ t: sql<string>`COALESCE(SUM(amount_usd),0)` }).from(incomes).where(and(eq(incomes.sourceId, s.id), isNull(incomes.deletedAt)));
-      const [exp] = await db.select({ t: sql<string>`COALESCE(SUM(amount_usd),0)` }).from(expenses).where(and(eq(expenses.incomeSourceId, s.id), isNull(expenses.deletedAt)));
-      const [spl] = await db.select({ t: sql<string>`COALESCE(SUM(${expenseSourceSplits.amountUsd}),0)` }).from(expenseSourceSplits).innerJoin(expenses, eq(expenseSourceSplits.expenseId, expenses.id)).where(and(eq(expenseSourceSplits.incomeSourceId, s.id), isNull(expenses.deletedAt)));
-      const [tin] = await db.select({ t: sql<string>`COALESCE(SUM(amount_usd),0)` }).from(fundTransfers).where(and(eq(fundTransfers.toSourceId, s.id), isNull(fundTransfers.deletedAt)));
-      const [tout] = await db.select({ t: sql<string>`COALESCE(SUM(amount_usd),0)` }).from(fundTransfers).where(and(eq(fundTransfers.fromSourceId, s.id), isNull(fundTransfers.deletedAt)));
+      const [inc] = await db.select({ t: sql<string>`COALESCE(SUM(amount_usd),0)` }).from(incomes).where(and(eq(incomes.sourceId, s.id), isNull(incomes.deletedAt), eq(incomes.householdId, hid)));
+      const [exp] = await db.select({ t: sql<string>`COALESCE(SUM(amount_usd),0)` }).from(expenses).where(and(eq(expenses.incomeSourceId, s.id), isNull(expenses.deletedAt), eq(expenses.householdId, hid)));
+      const [spl] = await db.select({ t: sql<string>`COALESCE(SUM(${expenseSourceSplits.amountUsd}),0)` }).from(expenseSourceSplits).innerJoin(expenses, eq(expenseSourceSplits.expenseId, expenses.id)).where(and(eq(expenseSourceSplits.incomeSourceId, s.id), isNull(expenses.deletedAt), eq(expenses.householdId, hid)));
+      const [tin] = await db.select({ t: sql<string>`COALESCE(SUM(amount_usd),0)` }).from(fundTransfers).where(and(eq(fundTransfers.toSourceId, s.id), isNull(fundTransfers.deletedAt), or(eq(fundTransfers.householdId, hid), eq(fundTransfers.toHouseholdId, hid))));
+      const [tout] = await db.select({ t: sql<string>`COALESCE(SUM(amount_usd),0)` }).from(fundTransfers).where(and(eq(fundTransfers.fromSourceId, s.id), isNull(fundTransfers.deletedAt), eq(fundTransfers.householdId, hid)));
       const balance = parseFloat(inc?.t ?? "0") - parseFloat(exp?.t ?? "0") - parseFloat(spl?.t ?? "0") + parseFloat(tin?.t ?? "0") - parseFloat(tout?.t ?? "0");
       return { ...s, balance };
     })
@@ -100,10 +104,10 @@ export default async function DashboardPage() {
   // ── Member balances (all-time, including transfers) ─────────────
   const memberBalanceRows = await Promise.all(
     allUsers.map(async (u) => {
-      const [dist] = await db.select({ t: sql<string>`COALESCE(SUM(${incomeDistributions.amountUsd}),0)` }).from(incomeDistributions).innerJoin(incomes, and(eq(incomeDistributions.incomeId, incomes.id), isNull(incomes.deletedAt))).where(eq(incomeDistributions.memberId, u.id));
-      const [exp] = await db.select({ t: sql<string>`COALESCE(SUM(amount_usd),0)` }).from(expenses).where(and(eq(expenses.memberId, u.id), isNull(expenses.deletedAt)));
-      const [tin] = await db.select({ t: sql<string>`COALESCE(SUM(amount_usd),0)` }).from(fundTransfers).where(and(eq(fundTransfers.toMemberId, u.id), isNull(fundTransfers.deletedAt)));
-      const [tout] = await db.select({ t: sql<string>`COALESCE(SUM(amount_usd),0)` }).from(fundTransfers).where(and(eq(fundTransfers.fromMemberId, u.id), isNull(fundTransfers.deletedAt)));
+      const [dist] = await db.select({ t: sql<string>`COALESCE(SUM(${incomeDistributions.amountUsd}),0)` }).from(incomeDistributions).innerJoin(incomes, and(eq(incomeDistributions.incomeId, incomes.id), isNull(incomes.deletedAt), eq(incomes.householdId, hid))).where(eq(incomeDistributions.memberId, u.id));
+      const [exp] = await db.select({ t: sql<string>`COALESCE(SUM(amount_usd),0)` }).from(expenses).where(and(eq(expenses.memberId, u.id), isNull(expenses.deletedAt), eq(expenses.householdId, hid)));
+      const [tin] = await db.select({ t: sql<string>`COALESCE(SUM(amount_usd),0)` }).from(fundTransfers).where(and(eq(fundTransfers.toMemberId, u.id), isNull(fundTransfers.deletedAt), eq(fundTransfers.householdId, hid)));
+      const [tout] = await db.select({ t: sql<string>`COALESCE(SUM(amount_usd),0)` }).from(fundTransfers).where(and(eq(fundTransfers.fromMemberId, u.id), isNull(fundTransfers.deletedAt), eq(fundTransfers.householdId, hid)));
       const balance = parseFloat(dist?.t ?? "0") - parseFloat(exp?.t ?? "0") + parseFloat(tin?.t ?? "0") - parseFloat(tout?.t ?? "0");
       return { id: u.id, balance };
     })

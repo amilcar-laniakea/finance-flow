@@ -1,5 +1,6 @@
 import { GeneratedAvatar } from "@/components/generated-avatar";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { NotificationBell } from "./NotificationBell";
 import { Separator, SidebarTrigger } from "@repo/ui";
 import { ChevronLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -36,8 +37,9 @@ export const DashbardTopbar = ({ user }: { user: UserData }) => {
         <BackButton />
       </div>
 
-      {/* Right — theme toggle + user avatar */}
+      {/* Right — notifications + theme toggle + user avatar */}
       <div className="ml-auto flex items-center gap-1">
+        <NotificationBell />
         <ThemeToggle />
         <GeneratedAvatar
           variant="initials"

@@ -1,11 +1,21 @@
 import { db, users, incomeDistributions, expenses, incomes, incomeSources, fundTransfers } from "@repo/db";
 import { eq, isNull, sql, and, or, inArray, desc } from "drizzle-orm";
+import { redirect } from "next/navigation";
+import { getInstanceContext } from "@/lib/getInstanceContext";
 import { MembersClient } from "./_components/MembersClient";
 
 export default async function MembersPage() {
+  const ctx = await getInstanceContext();
+  if (!ctx || !ctx.canRead) redirect("/dashboard");
+
+  const hid = ctx.activeHousehold.id;
+
+  // Personal instance: only show the owner (future: also their sub-members when that exists)
+  // Main instance: show all users
   const rows = await db
     .select({ id: users.id, email: users.email, fullName: users.fullName, role: users.role, clerkId: users.clerkId })
     .from(users)
+    .where(ctx.activeHousehold.isPersonal ? eq(users.personalHouseholdId, hid) : undefined)
     .orderBy(users.createdAt);
 
   const userIds = rows.map((r) => r.id);
@@ -15,22 +25,22 @@ export default async function MembersPage() {
       const [dist] = await db
         .select({ total: sql<string>`COALESCE(SUM(${incomeDistributions.amountUsd}), 0)` })
         .from(incomeDistributions)
-        .innerJoin(incomes, and(eq(incomeDistributions.incomeId, incomes.id), isNull(incomes.deletedAt)))
+        .innerJoin(incomes, and(eq(incomeDistributions.incomeId, incomes.id), isNull(incomes.deletedAt), eq(incomes.householdId, hid)))
         .where(eq(incomeDistributions.memberId, u.id));
 
       const [exp] = await db
         .select({ total: sql<string>`COALESCE(SUM(amount_usd), 0)` })
         .from(expenses)
-        .where(and(eq(expenses.memberId, u.id), isNull(expenses.deletedAt)));
+        .where(and(eq(expenses.memberId, u.id), isNull(expenses.deletedAt), eq(expenses.householdId, hid)));
 
       const [tin] = await db
         .select({ total: sql<string>`COALESCE(SUM(amount_usd), 0)` })
         .from(fundTransfers)
-        .where(and(eq(fundTransfers.toMemberId, u.id), isNull(fundTransfers.deletedAt)));
+        .where(and(eq(fundTransfers.toMemberId, u.id), isNull(fundTransfers.deletedAt), eq(fundTransfers.householdId, hid)));
       const [tout] = await db
         .select({ total: sql<string>`COALESCE(SUM(amount_usd), 0)` })
         .from(fundTransfers)
-        .where(and(eq(fundTransfers.fromMemberId, u.id), isNull(fundTransfers.deletedAt)));
+        .where(and(eq(fundTransfers.fromMemberId, u.id), isNull(fundTransfers.deletedAt), eq(fundTransfers.householdId, hid)));
 
       const totalReceived = parseFloat(dist?.total ?? "0");
       const totalSpent = parseFloat(exp?.total ?? "0");
@@ -54,7 +64,7 @@ export default async function MembersPage() {
           occurredAt: expenses.occurredAt,
         })
         .from(expenses)
-        .where(and(inArray(expenses.memberId, userIds), isNull(expenses.deletedAt)))
+        .where(and(inArray(expenses.memberId, userIds), isNull(expenses.deletedAt), eq(expenses.householdId, hid)))
         .orderBy(desc(expenses.occurredAt))
     : [];
 
@@ -69,7 +79,7 @@ export default async function MembersPage() {
           sourceName: incomeSources.name,
         })
         .from(incomeDistributions)
-        .innerJoin(incomes, and(eq(incomeDistributions.incomeId, incomes.id), isNull(incomes.deletedAt)))
+        .innerJoin(incomes, and(eq(incomeDistributions.incomeId, incomes.id), isNull(incomes.deletedAt), eq(incomes.householdId, hid)))
         .leftJoin(incomeSources, eq(incomes.sourceId, incomeSources.id))
         .where(inArray(incomeDistributions.memberId, userIds))
         .orderBy(desc(incomes.period))
@@ -89,6 +99,7 @@ export default async function MembersPage() {
         .where(
           and(
             isNull(fundTransfers.deletedAt),
+            eq(fundTransfers.householdId, hid),
             or(
               inArray(fundTransfers.fromMemberId, userIds),
               inArray(fundTransfers.toMemberId, userIds),

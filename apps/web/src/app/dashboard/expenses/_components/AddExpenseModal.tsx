@@ -10,7 +10,7 @@ import {
 
 type Member = { id: string; nickname: string | null };
 type Source = { id: string; name: string; color: string | null; balance: number };
-type ExpenseType = { id: string; name: string; color: string | null };
+type ExpenseType = { id: string; name: string; color: string | null; householdId: string | null };
 type SplitRow = { incomeSourceId: string; amountUsd: string };
 type TypeRow = { expenseTypeId: string; amount: string };
 
@@ -26,6 +26,7 @@ export function AddExpenseModal({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [memberTouched, setMemberTouched] = useState(false);
   const [memberId, setMemberId] = useState("");
   const [amountUsd, setAmountUsd] = useState("");
   const [splits, setSplits] = useState<SplitRow[]>([]);
@@ -74,6 +75,7 @@ export function AddExpenseModal({
     setAmountUsd("");
     setMemberId("");
     setError("");
+    setMemberTouched(false);
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -128,8 +130,14 @@ export function AddExpenseModal({
             {/* Member */}
             <div className="flex flex-col gap-1.5">
               <Label>Miembro *</Label>
-              <Select value={memberId || ""} onValueChange={setMemberId}>
-                <SelectTrigger className={!memberId ? "border-orange-300" : ""}>
+              <Select
+                value={memberId || ""}
+                onValueChange={(v) => { setMemberId(v); setMemberTouched(true); }}
+              >
+                <SelectTrigger
+                  className={memberTouched && !memberId ? "border-destructive ring-destructive" : ""}
+                  onBlur={() => setMemberTouched(true)}
+                >
                   <SelectValue placeholder="— Seleccionar miembro —" />
                 </SelectTrigger>
                 <SelectContent>
@@ -138,6 +146,9 @@ export function AddExpenseModal({
                   ))}
                 </SelectContent>
               </Select>
+              {memberTouched && !memberId && (
+                <p className="text-xs text-destructive">Selecciona un miembro para continuar.</p>
+              )}
             </div>
 
             {/* Type classification */}
@@ -175,9 +186,15 @@ export function AddExpenseModal({
                       className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
                     >
                       <option value="">— Seleccionar tipo —</option>
-                      {avail.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                      {avail.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name}{t.householdId === null ? " (Principal)" : ""}
+                        </option>
+                      ))}
                       {row.expenseTypeId && !avail.find((t) => t.id === row.expenseTypeId) && selected && (
-                        <option value={row.expenseTypeId}>{selected.name}</option>
+                        <option value={row.expenseTypeId}>
+                          {selected.name}{selected.householdId === null ? " (Principal)" : ""}
+                        </option>
                       )}
                     </select>
                     <Input

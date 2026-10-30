@@ -14,7 +14,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "FinanceFlow",
+  title: "Finanzas Camperas",
   description: "Gestión de finanzas personales para tu familia",
 };
 

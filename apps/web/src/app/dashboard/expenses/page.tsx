@@ -8,20 +8,28 @@ import {
   expenseTypeAmounts,
   expenseTypes,
 } from "@repo/db";
-import { isNull, desc, eq, and, sql, inArray } from "drizzle-orm";
+import { isNull, desc, eq, and, sql, inArray, or } from "drizzle-orm";
+import { redirect } from "next/navigation";
+import { getInstanceContext } from "@/lib/getInstanceContext";
 import { ExpensesClient } from "./_components/ExpensesClient";
 
 export default async function ExpensesPage() {
+  const ctx = await getInstanceContext();
+  if (!ctx || !ctx.canRead) redirect("/dashboard");
+
+  const hid = ctx.activeHousehold.id;
+
   const [rows, members, rawSources, rawTypes] = await Promise.all([
     db
       .select()
       .from(expenses)
-      .where(isNull(expenses.deletedAt))
+      .where(and(isNull(expenses.deletedAt), eq(expenses.householdId, hid)))
       .orderBy(desc(expenses.occurredAt))
       .limit(200),
     db
       .select({ id: users.id, nickname: users.fullName })
       .from(users)
+      .where(ctx.activeHousehold.isPersonal ? eq(users.personalHouseholdId, hid) : undefined)
       .orderBy(users.fullName),
     db
       .select({
@@ -30,9 +38,11 @@ export default async function ExpensesPage() {
         color: incomeSources.color,
       })
       .from(incomeSources)
-      .where(eq(incomeSources.isActive, true))
+      .where(and(eq(incomeSources.isActive, true), eq(incomeSources.householdId, hid)))
       .orderBy(incomeSources.name),
-    db.select().from(expenseTypes).orderBy(expenseTypes.name),
+    db.select().from(expenseTypes)
+      .where(or(isNull(expenseTypes.householdId), eq(expenseTypes.householdId, hid)))
+      .orderBy(expenseTypes.name),
   ]);
 
   // Compute balance per source

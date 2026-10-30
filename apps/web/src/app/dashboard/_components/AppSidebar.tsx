@@ -1,13 +1,15 @@
 "use client"
 
+import { useTransition } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { SignOutButton } from "@clerk/nextjs"
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
+  SidebarGroupContent,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -33,60 +35,128 @@ import {
   Landmark,
   PieChart,
   ArrowLeftRight,
+  Globe,
   Tag,
   Users,
   LogOut,
   ChevronsUpDown,
+  Building2,
+  Check,
+  ShieldCheck,
 } from "lucide-react"
+import { setActiveInstance } from "@/lib/actions/setActiveInstance"
+import type { SerializedInstanceContext } from "@/lib/getInstanceContext"
 
-const navItems = [
-  { href: "/dashboard", icon: Home, label: "Inicio", exact: true },
-  { href: "/dashboard/expenses", icon: Receipt, label: "Gastos" },
-  { href: "/dashboard/incomes", icon: TrendingUp, label: "Ingresos" },
-  { href: "/dashboard/funds", icon: Landmark, label: "Fondos" },
-  { href: "/dashboard/allocations", icon: PieChart, label: "Asignaciones" },
-  { href: "/dashboard/transfers", icon: ArrowLeftRight, label: "Transferencias" },
-  { href: "/dashboard/types", icon: Tag, label: "Tipos de Gasto" },
-  { href: "/dashboard/members", icon: Users, label: "Usuarios" },
-]
-
-interface AppSidebarProps {
-  user: {
-    name: string
-    email: string
-    imageUrl?: string
-  }
+type NavItem = {
+  href: string
+  icon: React.ElementType
+  label: string
+  exact?: boolean
+  description?: string
 }
 
-export function AppSidebar({ user }: AppSidebarProps) {
+type NavGroup = {
+  label: string
+  items: NavItem[]
+}
+
+function buildNavGroups(role: string): NavGroup[] {
+  const isAdminPlus = role === "admin" || role === "superadmin"
+
+  return [
+    {
+      label: "PRINCIPAL",
+      items: [
+        { href: "/dashboard", icon: Home, label: "Inicio", exact: true },
+        { href: "/dashboard/members", icon: Users, label: "Usuarios" },
+      ],
+    },
+    {
+      label: "GASTOS",
+      items: [
+        { href: "/dashboard/expenses", icon: Receipt, label: "Gastos" },
+        { href: "/dashboard/types", icon: Tag, label: "Tipos de Gasto" },
+      ],
+    },
+    {
+      label: "INGRESOS",
+      items: [
+        { href: "/dashboard/incomes", icon: TrendingUp, label: "Ingresos" },
+        { href: "/dashboard/allocations", icon: PieChart, label: "Asignaciones" },
+      ],
+    },
+    {
+      label: "TRANSFERENCIAS",
+      items: [
+        { href: "/dashboard/transfers", icon: ArrowLeftRight, label: "Locales", description: "Entre fondos y miembros" },
+        ...(isAdminPlus
+          ? [{ href: "/dashboard/instance-transfers", icon: Globe, label: "Globales", description: "Entre instancias" }]
+          : []),
+      ],
+    },
+    {
+      label: "OTROS",
+      items: [
+        { href: "/dashboard/funds", icon: Landmark, label: "Fondos" },
+        ...(role === "superadmin"
+          ? [{ href: "/dashboard/admin", icon: ShieldCheck, label: "Administración" }]
+          : []),
+      ],
+    },
+  ]
+}
+
+interface AppSidebarProps {
+  user: { name: string; email: string; imageUrl?: string }
+  instanceCtx: SerializedInstanceContext
+}
+
+export function AppSidebar({ user, instanceCtx }: AppSidebarProps) {
   const pathname = usePathname()
-  const { isMobile, setOpenMobile } = useSidebar()
+  const router = useRouter()
+  const { isMobile, open, setOpenMobile } = useSidebar()
+  const [isPending, startTransition] = useTransition()
 
   function handleNavClick() {
     if (isMobile) setOpenMobile(false)
   }
 
-  const initials = user.name
-    .split(" ")
-    .filter(Boolean)
-    .map((n) => n[0]!.toUpperCase())
-    .slice(0, 2)
-    .join("") || "?"
+  function handleSwitchInstance(id: string) {
+    startTransition(async () => {
+      await setActiveInstance(id)
+      router.refresh()
+    })
+  }
+
+  const initials =
+    user.name
+      .split(" ")
+      .filter(Boolean)
+      .map((n) => n[0]!.toUpperCase())
+      .slice(0, 2)
+      .join("") || "?"
+
+  const navGroups = buildNavGroups(instanceCtx.role)
+  const hasMultipleInstances = instanceCtx.availableInstances.length > 1
+  const instanceLabel = instanceCtx.isMainInstance ? "Principal" : instanceCtx.activeHouseholdName
 
   return (
     <Sidebar collapsible="icon">
-      {/* Header — brand */}
-      {/* h-14 fija la altura en ambos modos (expanded h-12 vs collapsed h-8) */}
+      {/* ── Header / Logo ─────────────────────────────────────────── */}
       <SidebarHeader className="h-14 justify-center p-2">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <Link href="/dashboard">
-                <div className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  <span className="text-[11px] font-bold tracking-tight">FF</span>
-                </div>
-                <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="text-sm font-semibold">FinanceFlow</span>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/avatar.jpeg"
+                  alt="Finanzas Camperas"
+                  className="flex aspect-square size-8 shrink-0 rounded-lg object-cover"
+                />
+                {/* Fade out on icon mode; whitespace-nowrap prevents wrapping during animation */}
+                <div className="flex flex-col gap-0.5 leading-none whitespace-nowrap overflow-hidden transition-[opacity] duration-150 group-data-[collapsible=icon]:opacity-0">
+                  <span className="text-sm font-semibold">Finanzas Camperas</span>
                   <span className="text-xs text-sidebar-foreground/50">Panel de control</span>
                 </div>
               </Link>
@@ -95,35 +165,113 @@ export function AppSidebar({ user }: AppSidebarProps) {
         </SidebarMenu>
       </SidebarHeader>
 
-      {/* Separator entre logo y menú — visible en modo normal y collapsed */}
       <div className="px-2">
-        <Separator className="bg-sidebar-border" />
+        <Separator className="bg-sidebar-foreground/20" />
       </div>
 
-      {/* Nav items */}
-      <SidebarContent>
-        <SidebarGroup>
+      {/* ── Instance switcher ─────────────────────────────────────── */}
+      {hasMultipleInstances && (
+        <div className="px-2 py-1.5">
           <SidebarMenu>
-            {navItems.map(({ href, icon: Icon, label, exact }) => {
-              const isActive = exact
-                ? pathname === href
-                : pathname.startsWith(href)
-              return (
-                <SidebarMenuItem key={href}>
-                  <SidebarMenuButton asChild isActive={isActive} tooltip={label}>
-                    <Link href={href} onClick={handleNavClick}>
-                      <Icon />
-                      <span>{label}</span>
-                    </Link>
+            <SidebarMenuItem>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <SidebarMenuButton
+                    tooltip="Cambiar instancia"
+                    disabled={isPending}
+                    className="data-[state=open]:bg-sidebar-accent"
+                  >
+                    <Building2 className="size-4 shrink-0" />
+                    <span className="truncate text-xs font-medium">{instanceLabel}</span>
+                    <ChevronsUpDown className="ml-auto size-3.5 shrink-0 opacity-60" />
                   </SidebarMenuButton>
-                </SidebarMenuItem>
-              )
-            })}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="right" align="start" className="min-w-52">
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">
+                    Instancias disponibles
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {instanceCtx.availableInstances.map((inst) => (
+                    <DropdownMenuItem
+                      key={inst.id}
+                      disabled={isPending || inst.id === instanceCtx.activeHouseholdId}
+                      className="cursor-pointer"
+                      onClick={() => handleSwitchInstance(inst.id)}
+                    >
+                      <Building2 className="mr-2 size-4 shrink-0" />
+                      <span className="truncate">{inst.isMain ? "Principal" : inst.name}</span>
+                      {inst.id === instanceCtx.activeHouseholdId && (
+                        <Check className="ml-auto size-4 shrink-0 text-primary" />
+                      )}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </SidebarMenuItem>
           </SidebarMenu>
-        </SidebarGroup>
+          <Separator className="bg-sidebar-foreground/20 mt-1.5" />
+        </div>
+      )}
+
+      {/* ── Navigation groups ─────────────────────────────────────── */}
+      <SidebarContent>
+        {navGroups.map((group) => (
+          <SidebarGroup key={group.label} className="py-0">
+            {/* Section header: h-8 container that cross-fades label ↔ separator */}
+            {isMobile ? (
+              // Mobile: always separator
+              <div className="flex h-8 items-center px-2">
+                <Separator className="bg-sidebar-foreground/20" />
+              </div>
+            ) : (
+              // Desktop: label when expanded, separator when collapsed — both in same h-8 slot
+              <div className="relative flex h-8 items-center overflow-hidden px-2">
+                <span
+                  className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40 transition-opacity duration-150"
+                  style={{ opacity: open ? 1 : 0 }}
+                >
+                  {group.label}
+                </span>
+                <div
+                  className="absolute inset-x-2 transition-opacity duration-150"
+                  style={{ opacity: open ? 0 : 1 }}
+                >
+                  <Separator className="bg-sidebar-foreground/20" />
+                </div>
+              </div>
+            )}
+
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.items.map(({ href, icon: Icon, label, exact, description }) => {
+                  const isActive = exact ? pathname === href : pathname.startsWith(href)
+                  return (
+                    <SidebarMenuItem key={href}>
+                      <SidebarMenuButton asChild isActive={isActive} tooltip={label}>
+                        <Link href={href} onClick={handleNavClick}>
+                          <Icon />
+                          {description ? (
+                            <span className="flex flex-col gap-0 leading-tight">
+                              <span>{label}</span>
+                              <span className="text-[10px] text-sidebar-foreground/40 group-data-[collapsible=icon]:hidden">
+                                {description}
+                              </span>
+                            </span>
+                          ) : (
+                            <span>{label}</span>
+                          )}
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
 
-      {/* Footer — user + sign out */}
+      {/* ── Footer / User menu ────────────────────────────────────── */}
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -143,9 +291,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-semibold">{user.name}</span>
-                    <span className="truncate text-xs text-sidebar-foreground/60">
-                      {user.email}
-                    </span>
+                    <span className="truncate text-xs text-sidebar-foreground/60">{user.email}</span>
                   </div>
                   <ChevronsUpDown className="ml-auto size-4" />
                 </SidebarMenuButton>
@@ -168,9 +314,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight">
                       <span className="truncate font-semibold">{user.name}</span>
-                      <span className="truncate text-xs text-muted-foreground">
-                        {user.email}
-                      </span>
+                      <span className="truncate text-xs text-muted-foreground">{user.email}</span>
                     </div>
                   </div>
                 </DropdownMenuLabel>

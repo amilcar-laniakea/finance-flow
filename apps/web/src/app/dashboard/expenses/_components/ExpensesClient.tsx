@@ -21,7 +21,7 @@ type ExpenseRow = {
 
 type Member = { id: string; nickname: string | null };
 type Source = { id: string; name: string; color: string | null; balance: number };
-type ExpenseType = { id: string; name: string; color: string | null };
+type ExpenseType = { id: string; name: string; color: string | null; householdId: string | null };
 type Split = { incomeSourceId: string; amountUsd: string };
 type TypeAmount = { expenseTypeId: string; amount: string };
 

@@ -1,6 +1,6 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { getOrCreateUser } from "@/lib/getOrCreateUser";
+import { getInstanceContext } from "@/lib/getInstanceContext";
 import { DashboardShell } from "./_components/DashboardShell";
 
 export default async function DashboardLayout({
@@ -11,23 +11,25 @@ export default async function DashboardLayout({
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
-  const [dbUser, clerkUser] = await Promise.all([
-    getOrCreateUser(userId),
+  const [ctx, clerkUser] = await Promise.all([
+    getInstanceContext(),
     currentUser(),
   ]);
 
-  if (!dbUser) redirect("/access-denied");
+  if (!ctx) redirect("/access-denied");
 
   const name =
     [clerkUser?.firstName, clerkUser?.lastName].filter(Boolean).join(" ").trim() ||
-    dbUser.fullName ||
+    ctx.activeHousehold.name ||
     "Usuario";
 
-  const email =
-    clerkUser?.emailAddresses[0]?.emailAddress || dbUser.email || "";
+  const email = clerkUser?.emailAddresses[0]?.emailAddress ?? "";
 
   return (
-    <DashboardShell user={{ name, email, imageUrl: clerkUser?.imageUrl }}>
+    <DashboardShell
+      user={{ name, email, imageUrl: clerkUser?.imageUrl ?? undefined }}
+      instanceCtx={ctx.serialized}
+    >
       {children}
     </DashboardShell>
   );

@@ -13,3 +13,4 @@ export * from "./transfers";
 export * from "./fund-transfers";
 export * from "./allocations";
 export * from "./parties";
+export * from "./notifications";

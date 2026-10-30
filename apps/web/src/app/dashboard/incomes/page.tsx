@@ -1,12 +1,19 @@
 import { db, incomes, incomeSources, users, incomeDistributions } from "@repo/db";
-import { isNull, desc, eq, inArray } from "drizzle-orm";
+import { isNull, desc, eq, inArray, and } from "drizzle-orm";
+import { redirect } from "next/navigation";
+import { getInstanceContext } from "@/lib/getInstanceContext";
 import { IncomesClient } from "./_components/IncomesClient";
 
 export default async function IncomesPage() {
+  const ctx = await getInstanceContext();
+  if (!ctx || !ctx.canRead) redirect("/dashboard");
+
+  const hid = ctx.activeHousehold.id;
+
   const [rows, sources, members] = await Promise.all([
-    db.select().from(incomes).where(isNull(incomes.deletedAt)).orderBy(desc(incomes.occurredAt)).limit(200),
+    db.select().from(incomes).where(and(isNull(incomes.deletedAt), eq(incomes.householdId, hid))).orderBy(desc(incomes.occurredAt)).limit(200),
     db.select({ id: incomeSources.id, name: incomeSources.name, color: incomeSources.color })
-      .from(incomeSources).where(eq(incomeSources.isActive, true)).orderBy(incomeSources.name),
+      .from(incomeSources).where(and(eq(incomeSources.isActive, true), eq(incomeSources.householdId, hid))).orderBy(incomeSources.name),
     db.select({ id: users.id, nickname: users.fullName }).from(users).orderBy(users.fullName),
   ]);
 
