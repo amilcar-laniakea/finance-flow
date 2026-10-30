@@ -1,4 +1,5 @@
 import { GeneratedAvatar } from "@/components/generated-avatar";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Separator, SidebarTrigger } from "@repo/ui";
 import { ChevronLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -27,7 +28,7 @@ export const DashbardTopbar = ({ user }: { user: UserData }) => {
     <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
       {/* Left */}
       <div className="flex items-center gap-2">
-        <SidebarTrigger className="-ml-1" />
+        <SidebarTrigger className="-ml-1 text-foreground" />
         <Separator
           orientation="vertical"
           className="mr-1 data-[orientation=vertical]:h-4"
@@ -35,8 +36,9 @@ export const DashbardTopbar = ({ user }: { user: UserData }) => {
         <BackButton />
       </div>
 
-      {/* Right — user pill */}
-      <div className="ml-auto flex items-center gap-2.5">
+      {/* Right — theme toggle + user avatar */}
+      <div className="ml-auto flex items-center gap-1">
+        <ThemeToggle />
         <GeneratedAvatar
           variant="initials"
           seed={user.name}

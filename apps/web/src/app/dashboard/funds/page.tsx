@@ -53,17 +53,10 @@ export default async function FundsPage() {
 
   return (
     <div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "24px",
-        }}
-      >
+      <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 style={{ fontSize: "24px", fontWeight: 700 }}>Fondos</h1>
-          <p style={{ fontSize: "13px", color: "#64748B", marginTop: "4px" }}>
+          <h1 className="text-2xl font-bold">Fondos</h1>
+          <p className="text-[13px] text-muted-foreground mt-1">
             {sources.length} fuente{sources.length !== 1 ? "s" : ""} activa{sources.length !== 1 ? "s" : ""}
           </p>
         </div>
@@ -71,81 +64,43 @@ export default async function FundsPage() {
       </div>
 
       {withBalances.length === 0 && (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "64px 24px",
-            color: "#94A3B8",
-          }}
-        >
-          <p style={{ fontSize: "16px", marginBottom: "8px" }}>No hay fuentes de ingreso aún.</p>
-          <p style={{ fontSize: "13px" }}>
-            Crea una fuente para comenzar a asignar ingresos y gastos.
-          </p>
+        <div className="text-center py-16 px-6 text-muted-foreground">
+          <p className="text-base mb-2">No hay fuentes de ingreso aún.</p>
+          <p className="text-[13px]">Crea una fuente para comenzar a asignar ingresos y gastos.</p>
         </div>
       )}
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-          gap: "16px",
-        }}
-      >
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4">
         {withBalances.map((s) => (
-          <div
-            key={s.id}
-            style={{
-              background: "#fff",
-              borderRadius: "12px",
-              border: "1px solid #E2E8F0",
-              padding: "24px",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
-            }}
-          >
-            {/* Header */}
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "16px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <div key={s.id} className="bg-card border border-border rounded-xl p-6 shadow-sm">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-2.5">
                 <div
-                  style={{
-                    width: "12px",
-                    height: "12px",
-                    borderRadius: "50%",
-                    background: s.color ?? "#16A34A",
-                    flexShrink: 0,
-                    marginTop: "3px",
-                  }}
+                  className="size-3 rounded-full shrink-0 mt-0.5"
+                  style={{ background: s.color ?? "#16A34A" }}
                 />
                 <div>
-                  <p style={{ fontWeight: 700, fontSize: "16px" }}>{s.name}</p>
+                  <p className="font-bold text-base text-foreground">{s.name}</p>
                   {s.description && (
-                    <p style={{ fontSize: "12px", color: "#94A3B8", marginTop: "2px" }}>
-                      {s.description}
-                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{s.description}</p>
                   )}
                 </div>
               </div>
-              <div style={{ display: "flex", gap: "2px", flexShrink: 0 }}>
+              <div className="flex gap-0.5 shrink-0">
                 <EditSourceModal source={{ id: s.id, name: s.name, description: s.description, color: s.color }} />
                 <DeleteSourceButton id={s.id} name={s.name} />
               </div>
             </div>
 
-            {/* Stats */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              <StatRow label="Total recibido" value={fmt(s.totalReceived)} color="#16A34A" />
-              <StatRow label="Total gastado" value={fmt(s.totalSpent)} color="#DC2626" />
-              <div
-                style={{
-                  borderTop: "1px solid #F1F5F9",
-                  paddingTop: "8px",
-                  marginTop: "4px",
-                }}
-              >
+            <div className="flex flex-col gap-2">
+              <StatRow label="Total recibido" value={fmt(s.totalReceived)} positive />
+              <StatRow label="Total gastado" value={fmt(s.totalSpent)} negative />
+              <div className="border-t border-border/60 pt-2 mt-1">
                 <StatRow
                   label="Disponible"
                   value={fmt(s.balance)}
-                  color={s.balance >= 0 ? "#1D4ED8" : "#DC2626"}
+                  positive={s.balance >= 0}
+                  negative={s.balance < 0}
                   bold
                 />
               </div>
@@ -160,18 +115,26 @@ export default async function FundsPage() {
 function StatRow({
   label,
   value,
-  color,
+  positive,
+  negative,
   bold,
 }: {
   label: string;
   value: string;
-  color: string;
+  positive?: boolean;
+  negative?: boolean;
   bold?: boolean;
 }) {
+  const color = positive
+    ? "text-green-600 dark:text-green-400"
+    : negative
+      ? "text-red-600 dark:text-red-400"
+      : "text-foreground";
+
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <span style={{ fontSize: "13px", color: "#64748B" }}>{label}</span>
-      <span style={{ fontSize: "14px", fontWeight: bold ? 700 : 500, color }}>{value}</span>
+    <div className="flex justify-between items-center">
+      <span className="text-[13px] text-muted-foreground">{label}</span>
+      <span className={`text-sm ${bold ? "font-bold" : "font-medium"} ${color}`}>{value}</span>
     </div>
   );
 }

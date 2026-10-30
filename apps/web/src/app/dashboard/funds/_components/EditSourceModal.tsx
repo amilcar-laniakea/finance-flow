@@ -3,12 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-type Source = {
-  id: string;
-  name: string;
-  description: string | null;
-  color: string | null;
-};
+type Source = { id: string; name: string; description: string | null; color: string | null };
 
 export function EditSourceModal({ source }: { source: Source }) {
   const [open, setOpen] = useState(false);
@@ -51,95 +46,42 @@ export function EditSourceModal({ source }: { source: Source }) {
       <button
         onClick={() => setOpen(true)}
         title="Editar fondo"
-        style={{
-          padding: "4px 8px",
-          borderRadius: "4px",
-          border: "none",
-          background: "transparent",
-          color: "#94A3B8",
-          cursor: "pointer",
-          fontSize: "13px",
-          lineHeight: 1,
-        }}
-        onMouseEnter={(e) => (e.currentTarget.style.color = "#2563EB")}
-        onMouseLeave={(e) => (e.currentTarget.style.color = "#94A3B8")}
+        className="px-2 py-1 rounded border-none bg-transparent text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer text-sm leading-none transition-colors"
       >
         ✎
       </button>
 
       {open && (
         <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.4)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 50,
-          }}
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
           onClick={(e) => e.target === e.currentTarget && setOpen(false)}
         >
-          <div
-            style={{
-              background: "#fff",
-              borderRadius: "12px",
-              padding: "32px",
-              width: "100%",
-              maxWidth: "420px",
-              boxShadow: "0 20px 60px rgba(0,0,0,0.15)",
-            }}
-          >
-            <h2 style={{ fontSize: "18px", fontWeight: 700, marginBottom: "24px" }}>
-              Editar Fondo
-            </h2>
+          <div className="bg-card rounded-xl p-8 w-full max-w-[420px] shadow-[0_20px_60px_rgba(0,0,0,0.15)] mx-4">
+            <h2 className="text-lg font-bold mb-6 text-foreground">Editar Fondo</h2>
 
-            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <label style={{ fontSize: "13px", fontWeight: 500, color: "#374151" }}>Nombre *</label>
-                <input
-                  name="name"
-                  required
-                  defaultValue={source.name}
-                  style={{ padding: "8px 12px", borderRadius: "6px", border: "1px solid #D1D5DB", fontSize: "14px", outline: "none" }}
-                />
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1">
+                <label className="text-[13px] font-medium text-foreground">Nombre *</label>
+                <input name="name" required defaultValue={source.name} className="px-3 py-2 rounded-md border border-border text-sm bg-background text-foreground outline-none w-full" />
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <label style={{ fontSize: "13px", fontWeight: 500, color: "#374151" }}>Descripción</label>
-                <input
-                  name="description"
-                  defaultValue={source.description ?? ""}
-                  placeholder="Opcional"
-                  style={{ padding: "8px 12px", borderRadius: "6px", border: "1px solid #D1D5DB", fontSize: "14px", outline: "none" }}
-                />
+              <div className="flex flex-col gap-1">
+                <label className="text-[13px] font-medium text-foreground">Descripción</label>
+                <input name="description" defaultValue={source.description ?? ""} placeholder="Opcional" className="px-3 py-2 rounded-md border border-border text-sm bg-background text-foreground outline-none w-full" />
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <label style={{ fontSize: "13px", fontWeight: 500, color: "#374151" }}>Color</label>
-                <input
-                  name="color"
-                  type="color"
-                  defaultValue={source.color ?? "#16A34A"}
-                  style={{ padding: "2px", borderRadius: "6px", border: "1px solid #D1D5DB", height: "38px", width: "80px", cursor: "pointer" }}
-                />
+              <div className="flex flex-col gap-1">
+                <label className="text-[13px] font-medium text-foreground">Color</label>
+                <input name="color" type="color" defaultValue={source.color ?? "#16A34A"} className="p-0.5 rounded-md border border-border h-9 w-20 cursor-pointer bg-background" />
               </div>
 
-              {error && <p style={{ color: "#DC2626", fontSize: "13px" }}>{error}</p>}
+              {error && <p className="text-[13px] text-red-600 dark:text-red-400">{error}</p>}
 
-              <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end", marginTop: "8px" }}>
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  style={{ padding: "8px 20px", borderRadius: "6px", border: "1px solid #E2E8F0", background: "#fff", cursor: "pointer", fontSize: "14px" }}
-                >
+              <div className="flex gap-3 justify-end mt-2">
+                <button type="button" onClick={() => setOpen(false)} className="px-5 py-2 rounded-md border border-border bg-card text-sm cursor-pointer hover:bg-muted transition-colors text-foreground">
                   Cancelar
                 </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  style={{ padding: "8px 20px", borderRadius: "6px", border: "none", background: loading ? "#93C5FD" : "#2563EB", color: "#fff", cursor: loading ? "not-allowed" : "pointer", fontSize: "14px", fontWeight: 600 }}
-                >
+                <button type="submit" disabled={loading} className="px-5 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors border-none">
                   {loading ? "Guardando..." : "Guardar cambios"}
                 </button>
               </div>

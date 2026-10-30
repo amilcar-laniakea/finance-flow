@@ -43,134 +43,47 @@ export function AddSourceModal() {
     <>
       <button
         onClick={() => setOpen(true)}
-        style={{
-          background: "#2563EB",
-          color: "#fff",
-          padding: "8px 20px",
-          borderRadius: "6px",
-          border: "none",
-          fontSize: "14px",
-          fontWeight: 600,
-          cursor: "pointer",
-        }}
+        className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-md text-sm font-semibold cursor-pointer border-none transition-colors"
       >
         + Nueva Fuente
       </button>
 
       {open && (
         <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.4)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 50,
-          }}
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
           onClick={(e) => e.target === e.currentTarget && setOpen(false)}
         >
-          <div
-            style={{
-              background: "#fff",
-              borderRadius: "12px",
-              padding: "32px",
-              width: "100%",
-              maxWidth: "420px",
-              boxShadow: "0 20px 60px rgba(0,0,0,0.15)",
-            }}
-          >
-            <h2 style={{ fontSize: "18px", fontWeight: 700, marginBottom: "24px" }}>
-              Nueva Fuente de Ingreso
-            </h2>
+          <div className="bg-card rounded-xl p-8 w-full max-w-[420px] shadow-[0_20px_60px_rgba(0,0,0,0.15)] mx-4">
+            <h2 className="text-lg font-bold mb-6 text-foreground">Nueva Fuente de Ingreso</h2>
 
-            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <label style={{ fontSize: "13px", fontWeight: 500, color: "#374151" }}>
-                  Nombre *
-                </label>
-                <input
-                  name="name"
-                  required
-                  placeholder="Ej: Salario, Colaboración, Freelance"
-                  style={{
-                    padding: "8px 12px",
-                    borderRadius: "6px",
-                    border: "1px solid #D1D5DB",
-                    fontSize: "14px",
-                    outline: "none",
-                  }}
-                />
-              </div>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <Field label="Nombre *" name="name" required placeholder="Ej: Salario, Colaboración, Freelance" />
+              <Field label="Descripción" name="description" placeholder="Opcional" />
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <label style={{ fontSize: "13px", fontWeight: 500, color: "#374151" }}>
-                  Descripción
-                </label>
-                <input
-                  name="description"
-                  placeholder="Opcional"
-                  style={{
-                    padding: "8px 12px",
-                    borderRadius: "6px",
-                    border: "1px solid #D1D5DB",
-                    fontSize: "14px",
-                    outline: "none",
-                  }}
-                />
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <label style={{ fontSize: "13px", fontWeight: 500, color: "#374151" }}>
-                  Color
-                </label>
+              <div className="flex flex-col gap-1">
+                <label className="text-[13px] font-medium text-foreground">Color</label>
                 <input
                   name="color"
                   type="color"
                   defaultValue="#16A34A"
-                  style={{
-                    padding: "2px",
-                    borderRadius: "6px",
-                    border: "1px solid #D1D5DB",
-                    height: "38px",
-                    width: "80px",
-                    cursor: "pointer",
-                  }}
+                  className="p-0.5 rounded-md border border-border h-9 w-20 cursor-pointer bg-background"
                 />
               </div>
 
-              {error && (
-                <p style={{ color: "#DC2626", fontSize: "13px" }}>{error}</p>
-              )}
+              {error && <p className="text-[13px] text-red-600 dark:text-red-400">{error}</p>}
 
-              <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end", marginTop: "8px" }}>
+              <div className="flex gap-3 justify-end mt-2">
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  style={{
-                    padding: "8px 20px",
-                    borderRadius: "6px",
-                    border: "1px solid #E2E8F0",
-                    background: "#fff",
-                    cursor: "pointer",
-                    fontSize: "14px",
-                  }}
+                  className="px-5 py-2 rounded-md border border-border bg-card text-sm cursor-pointer hover:bg-muted transition-colors text-foreground"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  style={{
-                    padding: "8px 20px",
-                    borderRadius: "6px",
-                    border: "none",
-                    background: loading ? "#93C5FD" : "#2563EB",
-                    color: "#fff",
-                    cursor: loading ? "not-allowed" : "pointer",
-                    fontSize: "14px",
-                    fontWeight: 600,
-                  }}
+                  className="px-5 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors border-none"
                 >
                   {loading ? "Guardando..." : "Crear Fuente"}
                 </button>
@@ -180,5 +93,22 @@ export function AddSourceModal() {
         </div>
       )}
     </>
+  );
+}
+
+function Field({ label, name, type = "text", placeholder, required }: {
+  label: string; name: string; type?: string; placeholder?: string; required?: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="text-[13px] font-medium text-foreground">{label}</label>
+      <input
+        name={name}
+        type={type}
+        placeholder={placeholder}
+        required={required}
+        className="px-3 py-2 rounded-md border border-border text-sm bg-background text-foreground outline-none w-full"
+      />
+    </div>
   );
 }

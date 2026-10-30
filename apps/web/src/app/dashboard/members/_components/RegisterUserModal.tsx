@@ -46,67 +46,32 @@ export function RegisterUserModal() {
     <>
       <button
         onClick={() => setOpen(true)}
-        style={{
-          background: "#2563EB",
-          color: "#fff",
-          padding: "8px 20px",
-          borderRadius: "6px",
-          border: "none",
-          fontSize: "14px",
-          fontWeight: 600,
-          cursor: "pointer",
-        }}
+        className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-md text-sm font-semibold cursor-pointer border-none transition-colors"
       >
         + Registrar Usuario
       </button>
 
       {open && (
         <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.4)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 50,
-          }}
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
           onClick={(e) => e.target === e.currentTarget && setOpen(false)}
         >
-          <div
-            style={{
-              background: "#fff",
-              borderRadius: "12px",
-              padding: "32px",
-              width: "100%",
-              maxWidth: "420px",
-              boxShadow: "0 20px 60px rgba(0,0,0,0.15)",
-            }}
-          >
-            <h2 style={{ fontSize: "18px", fontWeight: 700, marginBottom: "8px" }}>
-              Registrar Usuario
-            </h2>
-            <p style={{ fontSize: "13px", color: "#64748B", marginBottom: "24px" }}>
+          <div className="bg-card rounded-xl p-8 w-full max-w-[420px] shadow-[0_20px_60px_rgba(0,0,0,0.15)] mx-4">
+            <h2 className="text-lg font-bold mb-2 text-foreground">Registrar Usuario</h2>
+            <p className="text-[13px] text-muted-foreground mb-6">
               El usuario recibirá acceso cuando se registre en la plataforma con este email.
             </p>
 
-            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <Field label="Email *" name="email" type="email" placeholder="usuario@ejemplo.com" required />
               <Field label="Nombre completo" name="fullName" placeholder="Ej: María García" />
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <label style={{ fontSize: "13px", fontWeight: 500, color: "#374151" }}>Rol</label>
+              <div className="flex flex-col gap-1">
+                <label className="text-[13px] font-medium text-foreground">Rol</label>
                 <select
                   name="role"
                   defaultValue="member"
-                  style={{
-                    padding: "8px 12px",
-                    borderRadius: "6px",
-                    border: "1px solid #D1D5DB",
-                    fontSize: "14px",
-                    background: "#fff",
-                    color: "#374151",
-                  }}
+                  className="px-3 py-2 rounded-md border border-border text-sm bg-background text-foreground w-full"
                 >
                   <option value="member">Miembro</option>
                   <option value="viewer">Solo lectura</option>
@@ -114,39 +79,13 @@ export function RegisterUserModal() {
                 </select>
               </div>
 
-              {error && (
-                <p style={{ color: "#DC2626", fontSize: "13px" }}>{error}</p>
-              )}
+              {error && <p className="text-[13px] text-red-600 dark:text-red-400">{error}</p>}
 
-              <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end", marginTop: "8px" }}>
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  style={{
-                    padding: "8px 20px",
-                    borderRadius: "6px",
-                    border: "1px solid #E2E8F0",
-                    background: "#fff",
-                    cursor: "pointer",
-                    fontSize: "14px",
-                  }}
-                >
+              <div className="flex gap-3 justify-end mt-2">
+                <button type="button" onClick={() => setOpen(false)} className="px-5 py-2 rounded-md border border-border bg-card text-sm cursor-pointer hover:bg-muted transition-colors text-foreground">
                   Cancelar
                 </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  style={{
-                    padding: "8px 20px",
-                    borderRadius: "6px",
-                    border: "none",
-                    background: loading ? "#93C5FD" : "#2563EB",
-                    color: "#fff",
-                    cursor: loading ? "not-allowed" : "pointer",
-                    fontSize: "14px",
-                    fontWeight: 600,
-                  }}
-                >
+                <button type="submit" disabled={loading} className="px-5 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors border-none">
                   {loading ? "Registrando..." : "Registrar"}
                 </button>
               </div>
@@ -158,34 +97,18 @@ export function RegisterUserModal() {
   );
 }
 
-function Field({
-  label,
-  name,
-  type = "text",
-  placeholder,
-  required,
-}: {
-  label: string;
-  name: string;
-  type?: string;
-  placeholder?: string;
-  required?: boolean;
+function Field({ label, name, type = "text", placeholder, required }: {
+  label: string; name: string; type?: string; placeholder?: string; required?: boolean;
 }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-      <label style={{ fontSize: "13px", fontWeight: 500, color: "#374151" }}>{label}</label>
+    <div className="flex flex-col gap-1">
+      <label className="text-[13px] font-medium text-foreground">{label}</label>
       <input
         name={name}
         type={type}
         placeholder={placeholder}
         required={required}
-        style={{
-          padding: "8px 12px",
-          borderRadius: "6px",
-          border: "1px solid #D1D5DB",
-          fontSize: "14px",
-          outline: "none",
-        }}
+        className="px-3 py-2 rounded-md border border-border text-sm bg-background text-foreground outline-none w-full"
       />
     </div>
   );

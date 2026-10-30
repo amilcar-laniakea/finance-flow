@@ -45,85 +45,74 @@ export function AddTypeModal() {
     <>
       <button
         onClick={() => setOpen(true)}
-        style={{
-          background: "#7C3AED", color: "#fff", padding: "8px 20px",
-          borderRadius: "6px", border: "none", fontSize: "14px", fontWeight: 600, cursor: "pointer",
-        }}
+        className="bg-violet-600 hover:bg-violet-700 text-white px-5 py-2 rounded-md text-sm font-semibold cursor-pointer border-none transition-colors"
       >
         + Nuevo tipo
       </button>
 
       {open && (
         <div
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
           onClick={(e) => e.target === e.currentTarget && setOpen(false)}
         >
-          <div style={{ background: "#fff", borderRadius: "12px", padding: "32px", width: "100%", maxWidth: "400px", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
-            <h2 style={{ fontSize: "18px", fontWeight: 700, marginBottom: "24px" }}>Nuevo tipo de gasto</h2>
+          <div className="bg-card rounded-xl p-8 w-full max-w-[400px] shadow-[0_20px_60px_rgba(0,0,0,0.15)] mx-4">
+            <h2 className="text-lg font-bold mb-6 text-foreground">Nuevo tipo de gasto</h2>
 
-            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <label style={{ fontSize: "13px", fontWeight: 500, color: "#374151" }}>Nombre *</label>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1">
+                <label className="text-[13px] font-medium text-foreground">Nombre *</label>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Ej: Alimentación, Transporte, Salud..."
                   required
-                  style={{ padding: "8px 12px", borderRadius: "6px", border: "1px solid #D1D5DB", fontSize: "14px" }}
+                  className="px-3 py-2 rounded-md border border-border text-sm bg-background text-foreground outline-none w-full"
                 />
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                <label style={{ fontSize: "13px", fontWeight: 500, color: "#374151" }}>Color</label>
-                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              <div className="flex flex-col gap-2">
+                <label className="text-[13px] font-medium text-foreground">Color</label>
+                <div className="flex gap-2 flex-wrap">
                   {PRESET_COLORS.map((c) => (
                     <button
                       key={c}
                       type="button"
                       onClick={() => setColor(c)}
+                      className="size-7 rounded-full cursor-pointer border-2 transition-all"
                       style={{
-                        width: "28px", height: "28px", borderRadius: "50%", background: c,
-                        border: color === c ? "3px solid #111827" : "2px solid transparent",
-                        cursor: "pointer",
+                        background: c,
+                        borderColor: color === c ? "#111827" : "transparent",
+                        borderWidth: color === c ? "3px" : "2px",
                       }}
                     />
                   ))}
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div className="flex items-center gap-2.5">
                   <input
                     type="color"
                     value={color}
                     onChange={(e) => setColor(e.target.value)}
-                    style={{ width: "40px", height: "28px", border: "none", borderRadius: "4px", cursor: "pointer" }}
+                    className="w-10 h-7 border-none rounded cursor-pointer"
                   />
-                  <span style={{
-                    fontSize: "12px", padding: "3px 12px", borderRadius: "99px",
-                    background: `${color}22`, color, fontWeight: 600,
-                  }}>
+                  <span
+                    className="text-xs px-3 py-0.5 rounded-full font-semibold"
+                    style={{ background: `${color}22`, color }}
+                  >
                     {name || "Vista previa"}
                   </span>
                 </div>
               </div>
 
-              {error && <p style={{ color: "#DC2626", fontSize: "13px" }}>{error}</p>}
+              {error && <p className="text-[13px] text-red-600 dark:text-red-400">{error}</p>}
 
-              <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end", marginTop: "8px" }}>
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  style={{ padding: "8px 20px", borderRadius: "6px", border: "1px solid #E2E8F0", background: "#fff", cursor: "pointer", fontSize: "14px" }}
-                >
+              <div className="flex gap-3 justify-end mt-2">
+                <button type="button" onClick={() => setOpen(false)} className="px-5 py-2 rounded-md border border-border bg-card text-sm cursor-pointer hover:bg-muted transition-colors text-foreground">
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={loading || !name.trim()}
-                  style={{
-                    padding: "8px 20px", borderRadius: "6px", border: "none",
-                    background: loading || !name.trim() ? "#C4B5FD" : "#7C3AED",
-                    color: "#fff", cursor: loading || !name.trim() ? "not-allowed" : "pointer",
-                    fontSize: "14px", fontWeight: 600,
-                  }}
+                  className="px-5 py-2 rounded-md bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors border-none"
                 >
                   {loading ? "Creando..." : "Crear tipo"}
                 </button>

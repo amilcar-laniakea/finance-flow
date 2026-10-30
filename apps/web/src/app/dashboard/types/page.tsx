@@ -7,7 +7,6 @@ import { DeleteTypeButton } from "./_components/DeleteTypeButton";
 export default async function TypesPage() {
   const types = await db.select().from(expenseTypes).orderBy(expenseTypes.name);
 
-  // Count usages per type
   const usageCounts = await db
     .select({
       typeId: expenseTypeAmounts.expenseTypeId,
@@ -22,53 +21,45 @@ export default async function TypesPage() {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
+      <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 style={{ fontSize: "24px", fontWeight: 700 }}>Tipos de Gasto</h1>
-          <p style={{ fontSize: "13px", color: "#64748B", marginTop: "4px" }}>
+          <h1 className="text-2xl font-bold">Tipos de Gasto</h1>
+          <p className="text-[13px] text-muted-foreground mt-1">
             {types.length} tipo{types.length !== 1 ? "s" : ""} registrado{types.length !== 1 ? "s" : ""}
           </p>
         </div>
         <AddTypeModal />
       </div>
 
-      <div style={{ background: "#fff", borderRadius: "8px", border: "1px solid #E2E8F0", overflow: "hidden" }}>
+      <div className="bg-card border border-border rounded-lg overflow-hidden">
         {types.length === 0 ? (
-          <p style={{ padding: "48px 32px", color: "#94A3B8", textAlign: "center" }}>
+          <p className="px-8 py-12 text-muted-foreground text-center">
             No hay tipos de gasto creados aún. Crea el primero para clasificar tus gastos.
           </p>
         ) : (
           types.map((t, idx) => (
             <div
               key={t.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "14px 20px",
-                borderBottom: idx < types.length - 1 ? "1px solid #F1F5F9" : "none",
-              }}
+              className={`flex items-center justify-between px-5 py-3.5 ${idx < types.length - 1 ? "border-b border-border/60" : ""}`}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <div style={{
-                  width: "12px", height: "12px", borderRadius: "50%",
-                  background: t.color ?? "#7C3AED", flexShrink: 0,
-                }} />
+              <div className="flex items-center gap-3">
+                <div
+                  className="size-3 rounded-full shrink-0"
+                  style={{ background: t.color ?? "#7C3AED" }}
+                />
                 <div>
-                  <p style={{ fontWeight: 600, fontSize: "14px" }}>{t.name}</p>
-                  <p style={{ fontSize: "12px", color: "#94A3B8", marginTop: "2px" }}>
+                  <p className="font-semibold text-sm text-foreground">{t.name}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
                     Usado en {usageMap[t.id] ?? 0} gasto{(usageMap[t.id] ?? 0) !== 1 ? "s" : ""}
                   </p>
                 </div>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <span style={{
-                  fontSize: "12px", padding: "2px 10px", borderRadius: "99px",
-                  background: `${t.color ?? "#7C3AED"}22`,
-                  color: t.color ?? "#7C3AED",
-                  fontWeight: 600,
-                }}>
+              <div className="flex items-center gap-2">
+                <span
+                  className="text-xs px-2.5 py-0.5 rounded-full font-semibold"
+                  style={{ background: `${t.color ?? "#7C3AED"}22`, color: t.color ?? "#7C3AED" }}
+                >
                   {t.name}
                 </span>
                 <EditTypeModal type={{ id: t.id, name: t.name, color: t.color }} />

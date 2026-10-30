@@ -20,72 +20,28 @@ export function DeleteIncomeButton({ id, label }: { id: string; label: string })
 
   if (confirming) {
     return (
-      <>
-        {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center"
+        onClick={() => !loading && setConfirming(false)}
+      >
         <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.4)",
-            zIndex: 50,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-          onClick={() => !loading && setConfirming(false)}
+          className="bg-card rounded-xl px-8 py-7 max-w-[400px] w-full shadow-[0_20px_60px_rgba(0,0,0,0.15)] mx-4"
+          onClick={(e) => e.stopPropagation()}
         >
-          <div
-            style={{
-              background: "#fff",
-              borderRadius: "12px",
-              padding: "28px 32px",
-              maxWidth: "400px",
-              width: "100%",
-              boxShadow: "0 20px 60px rgba(0,0,0,0.15)",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 style={{ fontSize: "16px", fontWeight: 700, marginBottom: "8px" }}>
-              ¿Eliminar ingreso?
-            </h3>
-            <p style={{ fontSize: "14px", color: "#64748B", marginBottom: "24px" }}>
-              Se eliminará el ingreso <strong>&ldquo;{label}&rdquo;</strong>. Esta acción no se puede deshacer.
-            </p>
-            <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
-              <button
-                onClick={() => setConfirming(false)}
-                disabled={loading}
-                style={{
-                  padding: "8px 20px",
-                  borderRadius: "6px",
-                  border: "1px solid #E2E8F0",
-                  background: "#fff",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={loading}
-                style={{
-                  padding: "8px 20px",
-                  borderRadius: "6px",
-                  border: "none",
-                  background: loading ? "#FCA5A5" : "#DC2626",
-                  color: "#fff",
-                  cursor: loading ? "not-allowed" : "pointer",
-                  fontSize: "14px",
-                  fontWeight: 600,
-                }}
-              >
-                {loading ? "Eliminando..." : "Sí, eliminar"}
-              </button>
-            </div>
+          <h3 className="text-base font-bold mb-2 text-foreground">¿Eliminar ingreso?</h3>
+          <p className="text-sm text-muted-foreground mb-6">
+            Se eliminará el ingreso <strong>&ldquo;{label}&rdquo;</strong>. Esta acción no se puede deshacer.
+          </p>
+          <div className="flex gap-3 justify-end">
+            <button onClick={() => setConfirming(false)} disabled={loading} className="px-5 py-2 rounded-md border border-border bg-card text-sm cursor-pointer hover:bg-muted transition-colors text-foreground">
+              Cancelar
+            </button>
+            <button onClick={handleDelete} disabled={loading} className="px-5 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors border-none">
+              {loading ? "Eliminando..." : "Sí, eliminar"}
+            </button>
           </div>
         </div>
-      </>
+      </div>
     );
   }
 
@@ -93,18 +49,7 @@ export function DeleteIncomeButton({ id, label }: { id: string; label: string })
     <button
       onClick={() => setConfirming(true)}
       title="Eliminar ingreso"
-      style={{
-        padding: "4px 10px",
-        borderRadius: "4px",
-        border: "none",
-        background: "transparent",
-        color: "#94A3B8",
-        cursor: "pointer",
-        fontSize: "13px",
-        lineHeight: 1,
-      }}
-      onMouseEnter={(e) => (e.currentTarget.style.color = "#DC2626")}
-      onMouseLeave={(e) => (e.currentTarget.style.color = "#94A3B8")}
+      className="px-2.5 py-1 rounded border-none bg-transparent text-muted-foreground hover:text-red-600 dark:hover:text-red-400 cursor-pointer text-[13px] leading-none transition-colors"
     >
       ✕
     </button>

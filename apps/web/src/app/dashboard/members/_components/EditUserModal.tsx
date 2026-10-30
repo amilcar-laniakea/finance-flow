@@ -3,12 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-type User = {
-  id: string;
-  fullName: string | null;
-  email: string;
-  role: string | null;
-};
+type User = { id: string; fullName: string | null; email: string; role: string | null };
 
 const ROLES = [
   { value: "owner", label: "Propietario" },
@@ -56,91 +51,56 @@ export function EditUserModal({ user }: { user: User }) {
     router.refresh();
   }
 
-  const inputStyle: React.CSSProperties = {
-    padding: "8px 12px",
-    borderRadius: "6px",
-    border: "1px solid #D1D5DB",
-    fontSize: "14px",
-    width: "100%",
-  };
+  const inputCls = "px-3 py-2 rounded-md border border-border text-sm bg-background text-foreground outline-none w-full";
 
   return (
     <>
       <button
         onClick={handleOpen}
         title="Editar usuario"
-        style={{
-          padding: "4px 10px", borderRadius: "4px", border: "none",
-          background: "transparent", color: "#94A3B8", cursor: "pointer", fontSize: "13px",
-        }}
-        onMouseEnter={(e) => (e.currentTarget.style.color = "#2563EB")}
-        onMouseLeave={(e) => (e.currentTarget.style.color = "#94A3B8")}
+        className="px-2.5 py-1 rounded border-none bg-transparent text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer text-[13px] transition-colors"
       >
         ✎
       </button>
 
       {open && (
         <div
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
           onClick={(e) => e.target === e.currentTarget && setOpen(false)}
         >
-          <div style={{ background: "#fff", borderRadius: "12px", padding: "32px", width: "100%", maxWidth: "420px", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
-            <h2 style={{ fontSize: "18px", fontWeight: 700, marginBottom: "24px" }}>Editar usuario</h2>
+          <div className="bg-card rounded-xl p-8 w-full max-w-[420px] shadow-[0_20px_60px_rgba(0,0,0,0.15)] mx-4">
+            <h2 className="text-lg font-bold mb-6 text-foreground">Editar usuario</h2>
 
-            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <label style={{ fontSize: "13px", fontWeight: 500, color: "#374151" }}>Nombre completo</label>
-                <input
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Nombre y apellido"
-                  style={inputStyle}
-                />
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1">
+                <label className="text-[13px] font-medium text-foreground">Nombre completo</label>
+                <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Nombre y apellido" className={inputCls} />
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <label style={{ fontSize: "13px", fontWeight: 500, color: "#374151" }}>Email *</label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  style={inputStyle}
-                />
+              <div className="flex flex-col gap-1">
+                <label className="text-[13px] font-medium text-foreground">Email *</label>
+                <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} />
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <label style={{ fontSize: "13px", fontWeight: 500, color: "#374151" }}>Rol</label>
-                <select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  style={{ ...inputStyle, background: "#fff" }}
-                >
+              <div className="flex flex-col gap-1">
+                <label className="text-[13px] font-medium text-foreground">Rol</label>
+                <select value={role} onChange={(e) => setRole(e.target.value)} className={inputCls}>
                   {ROLES.map((r) => (
                     <option key={r.value} value={r.value}>{r.label}</option>
                   ))}
                 </select>
               </div>
 
-              {error && <p style={{ color: "#DC2626", fontSize: "13px" }}>{error}</p>}
+              {error && <p className="text-[13px] text-red-600 dark:text-red-400">{error}</p>}
 
-              <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end", marginTop: "8px" }}>
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  style={{ padding: "8px 20px", borderRadius: "6px", border: "1px solid #E2E8F0", background: "#fff", cursor: "pointer", fontSize: "14px" }}
-                >
+              <div className="flex gap-3 justify-end mt-2">
+                <button type="button" onClick={() => setOpen(false)} className="px-5 py-2 rounded-md border border-border bg-card text-sm cursor-pointer hover:bg-muted transition-colors text-foreground">
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={loading || !email.trim()}
-                  style={{
-                    padding: "8px 20px", borderRadius: "6px", border: "none",
-                    background: loading || !email.trim() ? "#93C5FD" : "#2563EB",
-                    color: "#fff", cursor: loading || !email.trim() ? "not-allowed" : "pointer",
-                    fontSize: "14px", fontWeight: 600,
-                  }}
+                  className="px-5 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors border-none"
                 >
                   {loading ? "Guardando..." : "Guardar cambios"}
                 </button>

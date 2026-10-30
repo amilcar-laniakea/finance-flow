@@ -21,48 +21,25 @@ export function DeleteSourceButton({ id, name }: { id: string; name: string }) {
   if (confirming) {
     return (
       <div
-        style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(0,0,0,0.4)",
-          zIndex: 50,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
+        className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center"
         onClick={() => !loading && setConfirming(false)}
       >
         <div
-          style={{
-            background: "#fff",
-            borderRadius: "12px",
-            padding: "28px 32px",
-            maxWidth: "420px",
-            width: "100%",
-            boxShadow: "0 20px 60px rgba(0,0,0,0.15)",
-          }}
+          className="bg-card rounded-xl px-8 py-7 max-w-[420px] w-full shadow-[0_20px_60px_rgba(0,0,0,0.15)] mx-4"
           onClick={(e) => e.stopPropagation()}
         >
-          <h3 style={{ fontSize: "16px", fontWeight: 700, marginBottom: "8px" }}>¿Eliminar fondo?</h3>
-          <p style={{ fontSize: "14px", color: "#64748B", marginBottom: "8px" }}>
+          <h3 className="text-base font-bold mb-2 text-foreground">¿Eliminar fondo?</h3>
+          <p className="text-sm text-muted-foreground mb-2">
             Se eliminará el fondo <strong>&ldquo;{name}&rdquo;</strong>.
           </p>
-          <p style={{ fontSize: "13px", color: "#94A3B8", marginBottom: "24px" }}>
+          <p className="text-[13px] text-muted-foreground/70 mb-6">
             Los ingresos y gastos asociados a este fondo no se eliminarán, pero el fondo dejará de aparecer en las listas.
           </p>
-          <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
-            <button
-              onClick={() => setConfirming(false)}
-              disabled={loading}
-              style={{ padding: "8px 20px", borderRadius: "6px", border: "1px solid #E2E8F0", background: "#fff", cursor: "pointer", fontSize: "14px" }}
-            >
+          <div className="flex gap-3 justify-end">
+            <button onClick={() => setConfirming(false)} disabled={loading} className="px-5 py-2 rounded-md border border-border bg-card text-sm cursor-pointer hover:bg-muted transition-colors text-foreground">
               Cancelar
             </button>
-            <button
-              onClick={handleDelete}
-              disabled={loading}
-              style={{ padding: "8px 20px", borderRadius: "6px", border: "none", background: loading ? "#FCA5A5" : "#DC2626", color: "#fff", cursor: loading ? "not-allowed" : "pointer", fontSize: "14px", fontWeight: 600 }}
-            >
+            <button onClick={handleDelete} disabled={loading} className="px-5 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors border-none">
               {loading ? "Eliminando..." : "Sí, eliminar"}
             </button>
           </div>
@@ -75,18 +52,7 @@ export function DeleteSourceButton({ id, name }: { id: string; name: string }) {
     <button
       onClick={() => setConfirming(true)}
       title="Eliminar fondo"
-      style={{
-        padding: "4px 8px",
-        borderRadius: "4px",
-        border: "none",
-        background: "transparent",
-        color: "#94A3B8",
-        cursor: "pointer",
-        fontSize: "13px",
-        lineHeight: 1,
-      }}
-      onMouseEnter={(e) => (e.currentTarget.style.color = "#DC2626")}
-      onMouseLeave={(e) => (e.currentTarget.style.color = "#94A3B8")}
+      className="px-2 py-1 rounded border-none bg-transparent text-muted-foreground hover:text-red-600 dark:hover:text-red-400 cursor-pointer text-sm leading-none transition-colors"
     >
       ✕
     </button>

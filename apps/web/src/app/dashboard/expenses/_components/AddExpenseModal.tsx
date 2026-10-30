@@ -55,7 +55,7 @@ export function AddExpenseModal({
     return src && parseFloat(s.amountUsd) > src.balance + 0.001;
   });
   const hasAtLeastOneSource = splits.some((s) => s.incomeSourceId !== "");
-  const canSubmit = !loading && hasAtLeastOneSource && !splitsTotalMismatch && splitOverdraftIdx === -1;
+  const canSubmit = !loading && !!memberId && hasAtLeastOneSource && !splitsTotalMismatch && splitOverdraftIdx === -1;
 
   function availableSourcesFor(idx: number) {
     const selectedIds = new Set(splits.filter((_, i) => i !== idx).map((s) => s.incomeSourceId));
@@ -89,7 +89,7 @@ export function AddExpenseModal({
     const body: Record<string, unknown> = {
       description: fd.get("description") as string,
       merchant: (fd.get("merchant") as string) || undefined,
-      memberId: memberId || undefined,
+      memberId,
       amountUsd: fd.get("amountUsd") as string,
       amountBs: (fd.get("amountBs") as string) || undefined,
       exchangeRate: (fd.get("exchangeRate") as string) || undefined,
@@ -127,13 +127,12 @@ export function AddExpenseModal({
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             {/* Member */}
             <div className="flex flex-col gap-1.5">
-              <Label>Miembro (opcional)</Label>
-              <Select value={memberId || "__none__"} onValueChange={(v) => setMemberId(v === "__none__" ? "" : v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="— Sin asignar —" />
+              <Label>Miembro *</Label>
+              <Select value={memberId || ""} onValueChange={setMemberId}>
+                <SelectTrigger className={!memberId ? "border-orange-300" : ""}>
+                  <SelectValue placeholder="— Seleccionar miembro —" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none__">— Sin asignar —</SelectItem>
                   {members.map((m) => (
                     <SelectItem key={m.id} value={m.id}>{m.nickname ?? m.id}</SelectItem>
                   ))}

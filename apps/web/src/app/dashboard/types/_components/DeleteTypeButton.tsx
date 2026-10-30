@@ -20,9 +20,7 @@ export function DeleteTypeButton({ id, name }: { id: string; name: string }) {
       onClick={handleDelete}
       disabled={loading}
       title="Eliminar tipo"
-      style={{ padding: "4px 10px", borderRadius: "4px", border: "none", background: "transparent", color: "#94A3B8", cursor: loading ? "not-allowed" : "pointer", fontSize: "13px" }}
-      onMouseEnter={(e) => (e.currentTarget.style.color = "#DC2626")}
-      onMouseLeave={(e) => (e.currentTarget.style.color = "#94A3B8")}
+      className="px-2.5 py-1 rounded border-none bg-transparent text-muted-foreground hover:text-red-600 dark:hover:text-red-400 cursor-pointer text-sm transition-colors disabled:cursor-not-allowed"
     >
       ✕
     </button>

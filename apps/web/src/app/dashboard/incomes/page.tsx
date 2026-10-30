@@ -24,7 +24,6 @@ export default async function IncomesPage() {
       .orderBy(users.fullName),
   ]);
 
-  // Fetch all distributions for visible incomes in one query
   const incomeIds = rows.map((r) => r.id);
   const allDists = incomeIds.length > 0
     ? await db
@@ -39,41 +38,36 @@ export default async function IncomesPage() {
         .where(inArray(incomeDistributions.incomeId, incomeIds))
     : [];
 
-  // Group distributions by incomeId
   const distsByIncome = new Map<string, { memberId: string | null; fullName: string | null; amountUsd: string }[]>();
   for (const d of allDists) {
     if (!distsByIncome.has(d.incomeId)) distsByIncome.set(d.incomeId, []);
-    distsByIncome.get(d.incomeId)!.push({
-      memberId: d.memberId,
-      fullName: d.fullName,
-      amountUsd: d.amountUsd,
-    });
+    distsByIncome.get(d.incomeId)!.push({ memberId: d.memberId, fullName: d.fullName, amountUsd: d.amountUsd });
   }
 
   const sourceMap = Object.fromEntries(sources.map((s) => [s.id, s]));
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
-        <h1 style={{ fontSize: "24px", fontWeight: 700 }}>Ingresos</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Ingresos</h1>
         <AddIncomeModal sources={sources} members={members} />
       </div>
 
-      <div style={{ background: "#fff", borderRadius: "8px", border: "1px solid #E2E8F0" }}>
+      <div className="bg-card border border-border rounded-lg overflow-hidden">
         {rows.length === 0 ? (
-          <p style={{ padding: "32px", color: "#94A3B8", textAlign: "center" }}>
+          <p className="p-8 text-muted-foreground text-center">
             Aún no hay ingresos registrados.
           </p>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
+          <table className="w-full border-collapse text-sm">
             <thead>
-              <tr style={{ borderBottom: "1px solid #E2E8F0", color: "#64748B", background: "#F8FAFC" }}>
-                <th style={{ textAlign: "left", padding: "12px 16px" }}>Fuente</th>
-                <th style={{ textAlign: "left", padding: "12px 16px" }}>Descripción</th>
-                <th style={{ textAlign: "right", padding: "12px 16px" }}>USD</th>
-                <th style={{ textAlign: "right", padding: "12px 16px" }}>Bs</th>
-                <th style={{ textAlign: "right", padding: "12px 16px" }}>Fecha</th>
-                <th style={{ textAlign: "center", padding: "12px 16px", width: "80px" }} />
+              <tr className="border-b border-border text-muted-foreground bg-muted/50">
+                <th className="text-left px-4 py-3">Fuente</th>
+                <th className="text-left px-4 py-3">Descripción</th>
+                <th className="text-right px-4 py-3">USD</th>
+                <th className="text-right px-4 py-3">Bs</th>
+                <th className="text-right px-4 py-3">Fecha</th>
+                <th className="text-center px-4 py-3 w-20" />
               </tr>
             </thead>
             <tbody>
@@ -83,29 +77,29 @@ export default async function IncomesPage() {
                 const dists = distsByIncome.get(i.id) ?? [];
                 return (
                   <React.Fragment key={i.id}>
-                    <tr style={{ borderBottom: dists.length > 0 ? "none" : "1px solid #F1F5F9" }}>
-                      <td style={{ padding: "12px 16px" }}>
+                    <tr className={dists.length > 0 ? "" : "border-b border-border/60"}>
+                      <td className="px-4 py-3">
                         {src ? (
-                          <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                            <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: src.color ?? "#16A34A", flexShrink: 0, display: "inline-block" }} />
-                            <span style={{ fontWeight: 500, color: "#16A34A" }}>{src.name}</span>
+                          <span className="flex items-center gap-1.5">
+                            <span className="size-2 rounded-full shrink-0 inline-block" style={{ background: src.color ?? "#16A34A" }} />
+                            <span className="font-medium text-green-600 dark:text-green-400">{src.name}</span>
                           </span>
                         ) : (
-                          <span style={{ fontWeight: 500, color: "#16A34A" }}>{i.source ?? "—"}</span>
+                          <span className="font-medium text-green-600 dark:text-green-400">{i.source ?? "—"}</span>
                         )}
                       </td>
-                      <td style={{ padding: "12px 16px", color: "#64748B" }}>{i.description ?? "—"}</td>
-                      <td style={{ padding: "12px 16px", textAlign: "right", color: "#16A34A", fontWeight: 700 }}>
+                      <td className="px-4 py-3 text-muted-foreground">{i.description ?? "—"}</td>
+                      <td className="px-4 py-3 text-right font-bold text-green-600 dark:text-green-400">
                         ${i.amountUsd}
                       </td>
-                      <td style={{ padding: "12px 16px", textAlign: "right", color: "#94A3B8" }}>
+                      <td className="px-4 py-3 text-right text-muted-foreground">
                         {i.amountBs ? `${i.amountBs} Bs` : "—"}
                       </td>
-                      <td style={{ padding: "12px 16px", textAlign: "right", color: "#64748B" }}>
+                      <td className="px-4 py-3 text-right text-muted-foreground">
                         {i.occurredAt ? new Date(i.occurredAt).toLocaleDateString("es-VE") : "—"}
                       </td>
-                      <td style={{ padding: "12px 8px", textAlign: "center" }}>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "2px" }}>
+                      <td className="px-2 py-3 text-center">
+                        <div className="flex items-center justify-center gap-0.5">
                           <EditIncomeModal
                             income={{
                               id: i.id,
@@ -126,25 +120,19 @@ export default async function IncomesPage() {
                       </td>
                     </tr>
 
-                    {/* Distribution breakdown sub-row */}
                     {dists.length > 0 && (
-                      <tr style={{ borderBottom: "1px solid #F1F5F9" }}>
-                        <td colSpan={6} style={{ padding: "0 16px 10px 24px" }}>
-                          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }}>
-                            <span style={{ fontSize: "11px", color: "#94A3B8", marginRight: "2px" }}>
-                              Distribución:
-                            </span>
+                      <tr className="border-b border-border/60">
+                        <td colSpan={6} className="px-4 pb-2.5 pl-6">
+                          <div className="flex gap-1.5 flex-wrap items-center">
+                            <span className="text-[11px] text-muted-foreground mr-0.5">Distribución:</span>
                             {dists.map((d, idx) => (
                               <span
                                 key={idx}
-                                style={{
-                                  fontSize: "12px",
-                                  padding: "2px 8px",
-                                  borderRadius: "99px",
-                                  background: d.memberId ? "#EFF6FF" : "#F1F5F9",
-                                  color: d.memberId ? "#2563EB" : "#64748B",
-                                  fontWeight: 500,
-                                }}
+                                className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                  d.memberId
+                                    ? "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400"
+                                    : "bg-muted text-muted-foreground"
+                                }`}
                               >
                                 {d.fullName ?? "Fondo hogar"} · ${parseFloat(d.amountUsd).toFixed(2)}
                               </span>

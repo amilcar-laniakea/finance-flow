@@ -8,12 +8,12 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  Separator,
   Avatar,
   AvatarFallback,
   AvatarImage,
@@ -76,12 +76,13 @@ export function AppSidebar({ user }: AppSidebarProps) {
   return (
     <Sidebar collapsible="icon">
       {/* Header — brand */}
-      <SidebarHeader>
+      {/* h-14 fija la altura en ambos modos (expanded h-12 vs collapsed h-8) */}
+      <SidebarHeader className="h-14 justify-center p-2">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <Link href="/dashboard">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                <div className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
                   <span className="text-[11px] font-bold tracking-tight">FF</span>
                 </div>
                 <div className="flex flex-col gap-0.5 leading-none">
@@ -94,10 +95,14 @@ export function AppSidebar({ user }: AppSidebarProps) {
         </SidebarMenu>
       </SidebarHeader>
 
+      {/* Separator entre logo y menú — visible en modo normal y collapsed */}
+      <div className="px-2">
+        <Separator className="bg-sidebar-border" />
+      </div>
+
       {/* Nav items */}
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Plataforma</SidebarGroupLabel>
           <SidebarMenu>
             {navItems.map(({ href, icon: Icon, label, exact }) => {
               const isActive = exact

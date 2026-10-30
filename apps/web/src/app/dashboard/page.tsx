@@ -100,7 +100,7 @@ export default async function DashboardPage() {
   // ── Member balances (all-time, including transfers) ─────────────
   const memberBalanceRows = await Promise.all(
     allUsers.map(async (u) => {
-      const [dist] = await db.select({ t: sql<string>`COALESCE(SUM(amount_usd),0)` }).from(incomeDistributions).where(eq(incomeDistributions.memberId, u.id));
+      const [dist] = await db.select({ t: sql<string>`COALESCE(SUM(${incomeDistributions.amountUsd}),0)` }).from(incomeDistributions).innerJoin(incomes, and(eq(incomeDistributions.incomeId, incomes.id), isNull(incomes.deletedAt))).where(eq(incomeDistributions.memberId, u.id));
       const [exp] = await db.select({ t: sql<string>`COALESCE(SUM(amount_usd),0)` }).from(expenses).where(and(eq(expenses.memberId, u.id), isNull(expenses.deletedAt)));
       const [tin] = await db.select({ t: sql<string>`COALESCE(SUM(amount_usd),0)` }).from(fundTransfers).where(and(eq(fundTransfers.toMemberId, u.id), isNull(fundTransfers.deletedAt)));
       const [tout] = await db.select({ t: sql<string>`COALESCE(SUM(amount_usd),0)` }).from(fundTransfers).where(and(eq(fundTransfers.fromMemberId, u.id), isNull(fundTransfers.deletedAt)));

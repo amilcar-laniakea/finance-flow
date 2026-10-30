@@ -27,11 +27,9 @@ export default async function TransfersPage() {
     db.select({ id: users.id, name: users.fullName }).from(users).orderBy(users.fullName),
   ]);
 
-  // Compute live balances for the modal
   const sources = await Promise.all(rawSources.map(async (s) => ({ ...s, balance: await getFundBalance(s.id) })));
   const members = await Promise.all(rawUsers.map(async (u) => ({ id: u.id, name: u.name ?? u.id.slice(0, 8), balance: await getMemberBalance(u.id) })));
 
-  // Fetch all transfers with resolved names
   const rows = await db
     .select({
       id: fundTransfers.id,
@@ -56,10 +54,10 @@ export default async function TransfersPage() {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
+      <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 style={{ fontSize: "24px", fontWeight: 700 }}>Transferencias</h1>
-          <p style={{ fontSize: "13px", color: "#64748B", marginTop: "4px" }}>
+          <h1 className="text-2xl font-bold">Transferencias</h1>
+          <p className="text-[13px] text-muted-foreground mt-1">
             {rows.length} transferencia{rows.length !== 1 ? "s" : ""} registrada{rows.length !== 1 ? "s" : ""}
           </p>
         </div>
@@ -67,40 +65,39 @@ export default async function TransfersPage() {
       </div>
 
       {/* Balance summary cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "32px" }}>
-        {/* Funds */}
-        <div style={{ background: "#fff", borderRadius: "8px", border: "1px solid #E2E8F0", padding: "20px" }}>
-          <p style={{ fontSize: "12px", fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "14px" }}>
+      <div className="grid grid-cols-2 gap-4 mb-8">
+        <div className="bg-card border border-border rounded-lg p-5">
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-3.5">
             Saldo actual por fondo
           </p>
           {sources.length === 0 ? (
-            <p style={{ fontSize: "13px", color: "#CBD5E1" }}>Sin fondos</p>
+            <p className="text-[13px] text-muted-foreground/60">Sin fondos</p>
           ) : (
             sources.map((s) => (
-              <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px" }}>
-                  <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: s.color ?? "#16A34A", display: "inline-block", flexShrink: 0 }} />
+              <div key={s.id} className="flex justify-between items-center mb-2">
+                <span className="flex items-center gap-1.5 text-[13px] text-foreground">
+                  <span className="size-2 rounded-full shrink-0 inline-block" style={{ background: s.color ?? "#16A34A" }} />
                   {s.name}
                 </span>
-                <span style={{ fontWeight: 700, color: s.balance >= 0 ? "#1D4ED8" : "#DC2626", fontSize: "13px" }}>
+                <span className={`font-bold text-[13px] ${s.balance >= 0 ? "text-blue-700 dark:text-blue-400" : "text-red-600 dark:text-red-400"}`}>
                   ${s.balance.toFixed(2)}
                 </span>
               </div>
             ))
           )}
         </div>
-        {/* Members */}
-        <div style={{ background: "#fff", borderRadius: "8px", border: "1px solid #E2E8F0", padding: "20px" }}>
-          <p style={{ fontSize: "12px", fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "14px" }}>
+
+        <div className="bg-card border border-border rounded-lg p-5">
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-3.5">
             Saldo actual por miembro
           </p>
           {members.length === 0 ? (
-            <p style={{ fontSize: "13px", color: "#CBD5E1" }}>Sin miembros</p>
+            <p className="text-[13px] text-muted-foreground/60">Sin miembros</p>
           ) : (
             members.map((m) => (
-              <div key={m.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                <span style={{ fontSize: "13px" }}>{m.name}</span>
-                <span style={{ fontWeight: 700, color: m.balance >= 0 ? "#1D4ED8" : "#DC2626", fontSize: "13px" }}>
+              <div key={m.id} className="flex justify-between items-center mb-2">
+                <span className="text-[13px] text-foreground">{m.name}</span>
+                <span className={`font-bold text-[13px] ${m.balance >= 0 ? "text-blue-700 dark:text-blue-400" : "text-red-600 dark:text-red-400"}`}>
                   ${m.balance.toFixed(2)}
                 </span>
               </div>
@@ -114,26 +111,26 @@ export default async function TransfersPage() {
         { label: "Transferencias entre fondos", list: fundRows, type: "fund" as const },
         { label: "Transferencias entre miembros", list: memberRows, type: "member" as const },
       ].map(({ label, list, type }) => (
-        <div key={type} style={{ marginBottom: "28px" }}>
-          <h2 style={{ fontSize: "13px", fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "12px" }}>
+        <div key={type} className="mb-7">
+          <h2 className="text-[13px] font-bold text-foreground uppercase tracking-wide mb-3">
             {label} ({list.length})
           </h2>
-          <div style={{ background: "#fff", borderRadius: "8px", border: "1px solid #E2E8F0", overflow: "hidden" }}>
+          <div className="bg-card border border-border rounded-lg overflow-hidden">
             {list.length === 0 ? (
-              <p style={{ padding: "24px", color: "#CBD5E1", textAlign: "center", fontSize: "13px" }}>
+              <p className="p-6 text-muted-foreground/60 text-center text-[13px]">
                 Sin transferencias aún
               </p>
             ) : (
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
+              <table className="w-full border-collapse text-sm">
                 <thead>
-                  <tr style={{ borderBottom: "1px solid #E2E8F0", color: "#64748B", background: "#F8FAFC" }}>
-                    <th style={{ textAlign: "left", padding: "10px 16px" }}>Origen</th>
-                    <th style={{ textAlign: "left", padding: "10px 16px" }}></th>
-                    <th style={{ textAlign: "left", padding: "10px 16px" }}>Destino</th>
-                    <th style={{ textAlign: "left", padding: "10px 16px" }}>Descripción</th>
-                    <th style={{ textAlign: "right", padding: "10px 16px" }}>Monto</th>
-                    <th style={{ textAlign: "right", padding: "10px 16px" }}>Fecha</th>
-                    <th style={{ padding: "10px 8px", width: "48px" }} />
+                  <tr className="border-b border-border text-muted-foreground bg-muted/50">
+                    <th className="text-left px-4 py-2.5">Origen</th>
+                    <th className="text-left px-1 py-2.5" />
+                    <th className="text-left px-4 py-2.5">Destino</th>
+                    <th className="text-left px-4 py-2.5">Descripción</th>
+                    <th className="text-right px-4 py-2.5">Monto</th>
+                    <th className="text-right px-4 py-2.5">Fecha</th>
+                    <th className="px-2 py-2.5 w-12" />
                   </tr>
                 </thead>
                 <tbody>
@@ -145,36 +142,30 @@ export default async function TransfersPage() {
                       ? (r.toSourceId ? srcMap[r.toSourceId] : null)
                       : (r.toMemberId ? usrMap[r.toMemberId] : null);
                     return (
-                      <tr key={r.id} style={{ borderBottom: "1px solid #F1F5F9" }}>
-                        <td style={{ padding: "12px 16px" }}>
-                          <span style={{
-                            fontSize: "12px", padding: "2px 8px", borderRadius: "99px",
-                            background: type === "fund" ? "#FEF2F2" : "#EFF6FF",
-                            color: type === "fund" ? "#DC2626" : "#2563EB",
-                            fontWeight: 600,
-                          }}>
+                      <tr key={r.id} className="border-b border-border/60">
+                        <td className="px-4 py-3">
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+                            type === "fund"
+                              ? "bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400"
+                              : "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400"
+                          }`}>
                             {from?.name ?? "—"}
                           </span>
                         </td>
-                        <td style={{ padding: "12px 4px", color: "#94A3B8", fontSize: "16px" }}>→</td>
-                        <td style={{ padding: "12px 16px" }}>
-                          <span style={{
-                            fontSize: "12px", padding: "2px 8px", borderRadius: "99px",
-                            background: type === "fund" ? "#F0FDF4" : "#F0FDF4",
-                            color: type === "fund" ? "#16A34A" : "#16A34A",
-                            fontWeight: 600,
-                          }}>
+                        <td className="px-1 py-3 text-muted-foreground text-base">→</td>
+                        <td className="px-4 py-3">
+                          <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-green-50 dark:bg-green-950/40 text-green-600 dark:text-green-400">
                             {to?.name ?? "—"}
                           </span>
                         </td>
-                        <td style={{ padding: "12px 16px", color: "#64748B" }}>{r.description ?? "—"}</td>
-                        <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 700, color: "#2563EB" }}>
+                        <td className="px-4 py-3 text-muted-foreground">{r.description ?? "—"}</td>
+                        <td className="px-4 py-3 text-right font-bold text-blue-600 dark:text-blue-400">
                           ${parseFloat(r.amountUsd).toFixed(2)}
                         </td>
-                        <td style={{ padding: "12px 16px", textAlign: "right", color: "#64748B" }}>
+                        <td className="px-4 py-3 text-right text-muted-foreground">
                           {r.period ? new Date(r.period).toLocaleDateString("es-VE") : "—"}
                         </td>
-                        <td style={{ padding: "12px 8px", textAlign: "center" }}>
+                        <td className="px-2 py-3 text-center">
                           <DeleteTransferButton id={r.id} />
                         </td>
                       </tr>

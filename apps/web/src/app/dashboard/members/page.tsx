@@ -1,10 +1,10 @@
 import { db, users, incomeDistributions, expenses, incomes, incomeSources, fundTransfers } from "@repo/db";
-import { eq, isNull, sql, and, inArray, desc } from "drizzle-orm";
+import { eq, isNull, sql, and, or, inArray, desc } from "drizzle-orm";
 import { RegisterUserModal } from "./_components/RegisterUserModal";
 import { MemberDetailModal } from "./_components/MemberDetailModal";
 import { EditUserModal } from "./_components/EditUserModal";
 import { DeleteUserButton } from "./_components/DeleteUserButton";
-import type { MemberExpense, MemberDistribution } from "./_components/MemberDetailModal";
+import type { MemberExpense, MemberDistribution, MemberTransfer } from "./_components/MemberDetailModal";
 
 const roleLabel: Record<string, string> = {
   owner: "Propietario",
@@ -27,12 +27,12 @@ export default async function MembersPage() {
 
   const userIds = rows.map((r) => r.id);
 
-  // Compute received / spent / balance per user
   const memberBalances = await Promise.all(
     rows.map(async (u) => {
       const [dist] = await db
-        .select({ total: sql<string>`COALESCE(SUM(amount_usd), 0)` })
+        .select({ total: sql<string>`COALESCE(SUM(${incomeDistributions.amountUsd}), 0)` })
         .from(incomeDistributions)
+        .innerJoin(incomes, and(eq(incomeDistributions.incomeId, incomes.id), isNull(incomes.deletedAt)))
         .where(eq(incomeDistributions.memberId, u.id));
 
       const [exp] = await db
@@ -59,7 +59,6 @@ export default async function MembersPage() {
     })
   );
 
-  // Fetch all expenses per member
   const allMemberExpenses = userIds.length > 0
     ? await db
         .select({
@@ -76,7 +75,6 @@ export default async function MembersPage() {
         .orderBy(desc(expenses.occurredAt))
     : [];
 
-  // Fetch all distributions per member with income + source info
   const allDistributions = userIds.length > 0
     ? await db
         .select({
@@ -88,13 +86,35 @@ export default async function MembersPage() {
           sourceName: incomeSources.name,
         })
         .from(incomeDistributions)
-        .innerJoin(incomes, eq(incomeDistributions.incomeId, incomes.id))
+        .innerJoin(incomes, and(eq(incomeDistributions.incomeId, incomes.id), isNull(incomes.deletedAt)))
         .leftJoin(incomeSources, eq(incomes.sourceId, incomeSources.id))
         .where(inArray(incomeDistributions.memberId, userIds))
         .orderBy(desc(incomes.period))
     : [];
 
-  // Group by memberId
+  const allMemberTransfers = userIds.length > 0
+    ? await db
+        .select({
+          id: fundTransfers.id,
+          fromMemberId: fundTransfers.fromMemberId,
+          toMemberId: fundTransfers.toMemberId,
+          amountUsd: fundTransfers.amountUsd,
+          description: fundTransfers.description,
+          period: fundTransfers.period,
+        })
+        .from(fundTransfers)
+        .where(and(
+          isNull(fundTransfers.deletedAt),
+          or(
+            inArray(fundTransfers.fromMemberId, userIds),
+            inArray(fundTransfers.toMemberId, userIds),
+          ),
+        ))
+        .orderBy(desc(fundTransfers.period))
+    : [];
+
+  const userNameMap = Object.fromEntries(rows.map((r) => [r.id, r.fullName ?? r.email]));
+
   const expensesByMember = new Map<string, MemberExpense[]>();
   for (const e of allMemberExpenses) {
     if (!e.memberId) continue;
@@ -122,57 +142,63 @@ export default async function MembersPage() {
     });
   }
 
-  const balanceMap = Object.fromEntries(
-    memberBalances.map((b) => [b.userId, b])
-  );
+  const transfersByMember = new Map<string, MemberTransfer[]>();
+  for (const t of allMemberTransfers) {
+    const entry = (id: string, direction: "in" | "out", counterpartId: string | null) => {
+      if (!transfersByMember.has(id)) transfersByMember.set(id, []);
+      transfersByMember.get(id)!.push({
+        id: t.id,
+        direction,
+        amountUsd: t.amountUsd,
+        description: t.description,
+        period: t.period,
+        counterpartName: counterpartId ? (userNameMap[counterpartId] ?? null) : null,
+      });
+    };
+    if (t.fromMemberId && userIds.includes(t.fromMemberId)) entry(t.fromMemberId, "out", t.toMemberId);
+    if (t.toMemberId && userIds.includes(t.toMemberId)) entry(t.toMemberId, "in", t.fromMemberId);
+  }
 
+  const balanceMap = Object.fromEntries(memberBalances.map((b) => [b.userId, b]));
   const active = rows.filter((u) => u.clerkId);
   const pending = rows.filter((u) => !u.clerkId);
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
+      <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 style={{ fontSize: "24px", fontWeight: 700 }}>Usuarios</h1>
-          <p style={{ fontSize: "13px", color: "#64748B", marginTop: "4px" }}>
+          <h1 className="text-2xl font-bold">Usuarios</h1>
+          <p className="text-[13px] text-muted-foreground mt-1">
             {active.length} activo{active.length !== 1 ? "s" : ""} · {pending.length} pendiente{pending.length !== 1 ? "s" : ""}
           </p>
         </div>
         <RegisterUserModal />
       </div>
 
-      {/* User balance cards */}
+      {/* Balance cards */}
       {memberBalances.some((m) => m.totalReceived > 0 || m.totalSpent > 0) && (
-        <div style={{ marginBottom: "32px" }}>
-          <h2 style={{ fontSize: "13px", fontWeight: 600, color: "#374151", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "12px" }}>
+        <div className="mb-8">
+          <h2 className="text-[13px] font-semibold text-foreground uppercase tracking-wide mb-3">
             Saldo por usuario
           </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "12px" }}>
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
             {memberBalances.map((m) => (
-              <div
-                key={m.userId}
-                style={{
-                  background: "#fff",
-                  borderRadius: "8px",
-                  border: "1px solid #E2E8F0",
-                  padding: "16px",
-                }}
-              >
-                <p style={{ fontWeight: 700, fontSize: "14px", marginBottom: "12px", color: "#111827" }}>
+              <div key={m.userId} className="bg-card border border-border rounded-lg p-4">
+                <p className="font-bold text-sm mb-3 text-foreground">
                   {m.fullName ?? m.userId.slice(0, 8)}
                 </p>
-                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
-                    <span style={{ color: "#64748B" }}>Recibido</span>
-                    <span style={{ fontWeight: 600, color: "#16A34A" }}>${m.totalReceived.toFixed(2)}</span>
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex justify-between text-[13px]">
+                    <span className="text-muted-foreground">Recibido</span>
+                    <span className="font-semibold text-green-600 dark:text-green-400">${m.totalReceived.toFixed(2)}</span>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
-                    <span style={{ color: "#64748B" }}>Gastado</span>
-                    <span style={{ fontWeight: 600, color: "#DC2626" }}>${m.totalSpent.toFixed(2)}</span>
+                  <div className="flex justify-between text-[13px]">
+                    <span className="text-muted-foreground">Gastado</span>
+                    <span className="font-semibold text-red-600 dark:text-red-400">${m.totalSpent.toFixed(2)}</span>
                   </div>
-                  <div style={{ borderTop: "1px solid #F1F5F9", paddingTop: "6px", marginTop: "2px", display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
-                    <span style={{ color: "#374151", fontWeight: 600 }}>Saldo</span>
-                    <span style={{ fontWeight: 700, color: m.balance >= 0 ? "#1D4ED8" : "#DC2626" }}>
+                  <div className="border-t border-border/60 pt-1.5 mt-0.5 flex justify-between text-[13px]">
+                    <span className="font-semibold text-foreground">Saldo</span>
+                    <span className={`font-bold ${m.balance >= 0 ? "text-blue-700 dark:text-blue-400" : "text-red-600 dark:text-red-400"}`}>
                       {m.balance >= 0 ? "+" : ""}${m.balance.toFixed(2)}
                     </span>
                   </div>
@@ -185,6 +211,7 @@ export default async function MembersPage() {
                   balance={m.balance}
                   expenses={expensesByMember.get(m.userId) ?? []}
                   distributions={distributionsByMember.get(m.userId) ?? []}
+                  transfers={transfersByMember.get(m.userId) ?? []}
                 />
               </div>
             ))}
@@ -192,7 +219,7 @@ export default async function MembersPage() {
         </div>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+      <div className="flex flex-col gap-6">
         {active.length > 0 && (
           <Section title="Activos" count={active.length}>
             {active.map((u) => (
@@ -210,7 +237,7 @@ export default async function MembersPage() {
         )}
 
         {rows.length === 0 && (
-          <p style={{ color: "#94A3B8", textAlign: "center", padding: "48px 0" }}>
+          <p className="text-muted-foreground text-center py-12">
             No hay usuarios registrados aún.
           </p>
         )}
@@ -230,10 +257,10 @@ function Section({
 }) {
   return (
     <div>
-      <h2 style={{ fontSize: "13px", fontWeight: 600, color: "#374151", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "12px" }}>
+      <h2 className="text-[13px] font-semibold text-foreground uppercase tracking-wide mb-3">
         {title}
       </h2>
-      <div style={{ background: "#fff", borderRadius: "8px", border: "1px solid #E2E8F0", overflow: "hidden" }}>
+      <div className="bg-card border border-border rounded-lg overflow-hidden">
         {children}
       </div>
     </div>
@@ -258,74 +285,42 @@ function UserRow({
   const matchedMember = memberBalance[user.id];
 
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "14px 20px",
-        borderBottom: "1px solid #F1F5F9",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-        <div
-          style={{
-            width: "36px",
-            height: "36px",
-            borderRadius: "50%",
-            background: isActive ? "#DBEAFE" : "#F1F5F9",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "14px",
-            fontWeight: 700,
-            color: isActive ? "#2563EB" : "#94A3B8",
-            flexShrink: 0,
-          }}
-        >
+    <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/60 last:border-b-0">
+      <div className="flex items-center gap-3">
+        <div className={`size-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
+          isActive
+            ? "bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400"
+            : "bg-muted text-muted-foreground"
+        }`}>
           {(user.fullName ?? user.email)[0]?.toUpperCase()}
         </div>
         <div>
-          <p style={{ fontWeight: 600, fontSize: "14px", marginBottom: "2px" }}>
-            {user.fullName ?? "—"}
-          </p>
-          <p style={{ fontSize: "13px", color: "#64748B" }}>{user.email}</p>
+          <p className="font-semibold text-sm text-foreground mb-0.5">{user.fullName ?? "—"}</p>
+          <p className="text-[13px] text-muted-foreground">{user.email}</p>
         </div>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-        <span style={{
-          fontSize: "12px",
-          padding: "2px 10px",
-          borderRadius: "99px",
-          background: "#F1F5F9",
-          color: "#475569",
-        }}>
+      <div className="flex items-center gap-2.5">
+        <span className="text-xs px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground">
           {roleLabel[user.role ?? "member"] ?? user.role}
         </span>
-        <span style={{
-          fontSize: "12px",
-          padding: "2px 10px",
-          borderRadius: "99px",
-          background: isActive ? "#DCFCE7" : "#FEF9C3",
-          color: isActive ? "#16A34A" : "#A16207",
-          fontWeight: 600,
-        }}>
+        <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold ${
+          isActive
+            ? "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400"
+            : "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400"
+        }`}>
           {isActive ? "✓ Activo" : "⏳ Pendiente"}
         </span>
         {matchedMember && (
-          <span style={{
-            fontSize: "12px",
-            padding: "2px 10px",
-            borderRadius: "99px",
-            background: matchedMember.balance >= 0 ? "#F0FDF4" : "#FEF2F2",
-            color: matchedMember.balance >= 0 ? "#16A34A" : "#DC2626",
-            fontWeight: 600,
-          }}>
+          <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold ${
+            matchedMember.balance >= 0
+              ? "bg-green-50 dark:bg-green-950/40 text-green-600 dark:text-green-400"
+              : "bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400"
+          }`}>
             {matchedMember.balance >= 0 ? "+" : ""}${matchedMember.balance.toFixed(2)}
           </span>
         )}
-        <div style={{ display: "flex", alignItems: "center", gap: "2px", marginLeft: "4px" }}>
+        <div className="flex items-center gap-0.5 ml-1">
           <EditUserModal user={{ id: user.id, fullName: user.fullName, email: user.email, role: user.role }} />
           <DeleteUserButton id={user.id} name={user.fullName ?? user.email} />
         </div>

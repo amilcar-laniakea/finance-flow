@@ -94,6 +94,10 @@ export async function POST(request: NextRequest) {
     typeAmounts?: { expenseTypeId: string; amount: string }[];
   };
 
+  if (!body.memberId) {
+    return NextResponse.json({ error: "Debe asignar un miembro al gasto." }, { status: 422 });
+  }
+
   const expenseAmount = parseFloat(body.amountUsd);
 
   // --- Multi-source split path ---

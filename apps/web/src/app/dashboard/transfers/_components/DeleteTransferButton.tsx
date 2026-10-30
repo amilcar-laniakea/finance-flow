@@ -19,16 +19,7 @@ export function DeleteTransferButton({ id }: { id: string }) {
     <button
       onClick={handleDelete}
       disabled={loading}
-      style={{
-        padding: "4px 10px",
-        borderRadius: "6px",
-        border: "none",
-        background: "#FEE2E2",
-        color: "#DC2626",
-        cursor: loading ? "not-allowed" : "pointer",
-        fontSize: "12px",
-        fontWeight: 600,
-      }}
+      className="px-2.5 py-1 rounded-md border-none bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 cursor-pointer text-xs font-semibold disabled:cursor-not-allowed transition-colors hover:bg-red-100 dark:hover:bg-red-900/40"
     >
       {loading ? "..." : "✕"}
     </button>
