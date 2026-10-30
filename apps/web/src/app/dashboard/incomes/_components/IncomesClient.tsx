@@ -238,6 +238,7 @@ export function IncomesClient({ rows, sources, members, distsByIncome }: Props) 
                           income={{ id: r.id, source: r.source, sourceId: r.sourceId, description: r.description, memberId: r.memberId, amountUsd: r.amountUsd, amountBs: r.amountBs, exchangeRate: r.exchangeRate, period: r.period as any }}
                           sources={sources}
                           members={members}
+                          initialDists={dists}
                         />
                         <DeleteIncomeButton id={r.id} label={src?.name ?? r.source ?? r.description ?? r.id} />
                       </div>
@@ -310,6 +311,7 @@ export function IncomesClient({ rows, sources, members, distsByIncome }: Props) 
                                   income={{ id: r.id, source: r.source, sourceId: r.sourceId, description: r.description, memberId: r.memberId, amountUsd: r.amountUsd, amountBs: r.amountBs, exchangeRate: r.exchangeRate, period: r.period as any }}
                                   sources={sources}
                                   members={members}
+                                  initialDists={dists}
                                 />
                                 <DeleteIncomeButton id={r.id} label={label} />
                               </div>

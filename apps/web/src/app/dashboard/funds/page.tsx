@@ -95,7 +95,7 @@ export default async function FundsPage() {
               </div>
               <div className="flex gap-0.5 shrink-0">
                 <EditSourceModal source={{ id: s.id, name: s.name, description: s.description, color: s.color }} />
-                <DeleteSourceButton id={s.id} name={s.name} />
+                <DeleteSourceButton id={s.id} name={s.name} balance={s.balance} />
               </div>
             </div>
 

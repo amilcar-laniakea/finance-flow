@@ -51,6 +51,7 @@ export default async function TransfersPage() {
       amountUsd: fundTransfers.amountUsd,
       description: fundTransfers.description,
       period: fundTransfers.period,
+      groupId: fundTransfers.groupId,
     })
     .from(fundTransfers)
     .where(and(isNull(fundTransfers.deletedAt), eq(fundTransfers.householdId, hid)))
@@ -59,6 +60,7 @@ export default async function TransfersPage() {
   const rows = rawRows.map((r) => ({
     ...r,
     period: r.period ? new Date(r.period).toISOString() : null,
+    groupId: r.groupId ?? null,
   }));
 
   return <TransfersClient sources={sources} members={members} rows={rows} />;

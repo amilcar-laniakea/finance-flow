@@ -18,6 +18,7 @@ export const fundTransfers = pgTable("fund_transfers", {
   householdId: uuid("household_id").references(() => households.id),
   // Destination household — only set for transferType = 'cross-instance'
   toHouseholdId: uuid("to_household_id").references(() => households.id),
+  groupId: uuid("group_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });

@@ -72,16 +72,26 @@ export async function POST(request: NextRequest) {
     })
     .returning();
 
-  if (body.distributions && body.distributions.length > 0) {
-    await db.insert(incomeDistributions).values(
-      body.distributions.map((d) => ({
-        incomeId: created!.id,
-        memberId: d.memberId || null,
-        amountUsd: d.amountUsd,
-        notes: d.notes || null,
-      }))
-    );
+  const validDists = (body.distributions ?? []).filter((d) => d.memberId && parseFloat(d.amountUsd) > 0);
+  if (validDists.length === 0) {
+    // Roll back the income insert
+    await db.delete(incomes).where(eq(incomes.id, created!.id));
+    return NextResponse.json({ error: "Debes asignar el ingreso a al menos un miembro." }, { status: 400 });
   }
+  const totalDist = validDists.reduce((sum, d) => sum + parseFloat(d.amountUsd), 0);
+  if (Math.abs(totalDist - parseFloat(body.amountUsd)) > 0.01) {
+    await db.delete(incomes).where(eq(incomes.id, created!.id));
+    return NextResponse.json({ error: `La suma de las distribuciones ($${totalDist.toFixed(2)}) debe igualar el monto del ingreso ($${parseFloat(body.amountUsd).toFixed(2)}).` }, { status: 400 });
+  }
+
+  await db.insert(incomeDistributions).values(
+    validDists.map((d) => ({
+      incomeId: created!.id,
+      memberId: d.memberId!,
+      amountUsd: d.amountUsd,
+      notes: d.notes || null,
+    }))
+  );
 
   return NextResponse.json(created, { status: 201 });
 }

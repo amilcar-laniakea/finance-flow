@@ -33,6 +33,7 @@ export async function GET() {
       amountUsd: fundTransfers.amountUsd,
       description: fundTransfers.description,
       period: fundTransfers.period,
+      groupId: fundTransfers.groupId,
       createdAt: fundTransfers.createdAt,
     })
     .from(fundTransfers)
@@ -64,6 +65,7 @@ export async function POST(req: Request) {
     fromSourceId?: string;
     toSourceId?: string;
     fromMemberId?: string;
+    memberSplits?: { memberId: string; amountUsd: string }[];
     amountUsd: string;
     description?: string;
     period?: string;
@@ -167,23 +169,60 @@ export async function POST(req: Request) {
   }
 
   if (transferType === "fund") {
+    // Validate fund balance
     const bal = await fundBalance(fromId, ctx.activeHousehold.id);
     if (amount > bal + 0.001) {
       return NextResponse.json({ error: `Saldo insuficiente en el fondo. Disponible: $${bal.toFixed(2)}` }, { status: 422 });
     }
-  } else {
-    const bal = await memberBalance(fromId);
-    if (amount > bal + 0.001) {
-      return NextResponse.json({ error: `Saldo insuficiente del miembro. Disponible: $${bal.toFixed(2)}` }, { status: 422 });
+
+    // Validate member splits — required and must sum to total
+    const { memberSplits } = body;
+    if (!memberSplits || memberSplits.length === 0) {
+      return NextResponse.json({ error: "Debes indicar a qué miembro(s) descontar el monto." }, { status: 400 });
     }
+    const validSplits = memberSplits.filter((s) => s.memberId && parseFloat(s.amountUsd) > 0);
+    if (validSplits.length === 0) {
+      return NextResponse.json({ error: "Cada deducción debe tener un miembro y un monto mayor a cero." }, { status: 400 });
+    }
+    const splitsTotal = validSplits.reduce((sum, s) => sum + parseFloat(s.amountUsd), 0);
+    if (Math.abs(splitsTotal - amount) > 0.01) {
+      return NextResponse.json(
+        { error: `La suma de las deducciones ($${splitsTotal.toFixed(2)}) debe ser igual al monto total ($${amount.toFixed(2)}).` },
+        { status: 400 }
+      );
+    }
+
+    const groupId = crypto.randomUUID();
+    const periodDate = period ? new Date(period) : new Date();
+    await db.insert(fundTransfers).values(
+      validSplits.map((s) => ({
+        transferType: "fund" as const,
+        fromSourceId: fromId,
+        toSourceId: toId,
+        fromMemberId: s.memberId,
+        amountUsd: s.amountUsd,
+        description: description || null,
+        period: periodDate,
+        householdId: ctx.activeHousehold.id,
+        groupId,
+      }))
+    );
+
+    return NextResponse.json({ groupId }, { status: 201 });
+  }
+
+  // ── member transfer ──────────────────────────────────────────────────
+  const bal = await memberBalance(fromId);
+  if (amount > bal + 0.001) {
+    return NextResponse.json({ error: `Saldo insuficiente del miembro. Disponible: $${bal.toFixed(2)}` }, { status: 422 });
   }
 
   const [created] = await db.insert(fundTransfers).values({
     transferType,
-    fromSourceId: transferType === "fund" ? fromId : null,
-    toSourceId: transferType === "fund" ? toId : null,
-    fromMemberId: transferType === "member" ? fromId : null,
-    toMemberId: transferType === "member" ? toId : null,
+    fromSourceId: null,
+    toSourceId: null,
+    fromMemberId: fromId,
+    toMemberId: toId,
     amountUsd,
     description: description || null,
     period: period ? new Date(period) : new Date(),

@@ -2,59 +2,104 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Trash2, Lock } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@repo/ui";
 
-export function DeleteSourceButton({ id, name }: { id: string; name: string }) {
-  const [confirming, setConfirming] = useState(false);
+export function DeleteSourceButton({
+  id,
+  name,
+  balance,
+}: {
+  id: string;
+  name: string;
+  balance: number;
+}) {
   const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState("");
   const router = useRouter();
+
+  const isLocked = Math.abs(balance) > 0.001;
 
   async function handleDelete() {
     setLoading(true);
+    setApiError("");
     const res = await fetch(`/api/income-sources/${id}`, { method: "DELETE" });
     setLoading(false);
     if (res.ok) {
-      setConfirming(false);
       router.refresh();
+    } else {
+      const data = await res.json().catch(() => ({})) as { error?: string };
+      setApiError(data.error ?? "Error al eliminar el fondo.");
     }
   }
 
-  if (confirming) {
+  if (isLocked) {
     return (
-      <div
-        className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center"
-        onClick={() => !loading && setConfirming(false)}
-      >
-        <div
-          className="bg-card rounded-xl px-8 py-7 max-w-[420px] w-full shadow-[0_20px_60px_rgba(0,0,0,0.15)] mx-4"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <h3 className="text-base font-bold mb-2 text-foreground">¿Eliminar fondo?</h3>
-          <p className="text-sm text-muted-foreground mb-2">
-            Se eliminará el fondo <strong>&ldquo;{name}&rdquo;</strong>.
-          </p>
-          <p className="text-[13px] text-muted-foreground/70 mb-6">
-            Los ingresos y gastos asociados a este fondo no se eliminarán, pero el fondo dejará de aparecer en las listas.
-          </p>
-          <div className="flex gap-3 justify-end">
-            <button onClick={() => setConfirming(false)} disabled={loading} className="px-5 py-2 rounded-md border border-border bg-card text-sm cursor-pointer hover:bg-muted transition-colors text-foreground">
-              Cancelar
-            </button>
-            <button onClick={handleDelete} disabled={loading} className="px-5 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors border-none">
-              {loading ? "Eliminando..." : "Sí, eliminar"}
-            </button>
-          </div>
-        </div>
-      </div>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            disabled
+            aria-label="No se puede eliminar — fondo con saldo"
+            className="flex items-center justify-center size-8 rounded-md border-none bg-transparent text-muted-foreground/40 cursor-not-allowed"
+          >
+            <Lock size={14} />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-[220px] text-center">
+          Saldo disponible: <strong>${balance.toFixed(2)}</strong>. Lleva el saldo a $0.00 para poder eliminar este fondo.
+        </TooltipContent>
+      </Tooltip>
     );
   }
 
   return (
-    <button
-      onClick={() => setConfirming(true)}
-      title="Eliminar fondo"
-      className="px-2 py-1 rounded border-none bg-transparent text-muted-foreground hover:text-red-600 dark:hover:text-red-400 cursor-pointer text-sm leading-none transition-colors"
-    >
-      ✕
-    </button>
+    <AlertDialog onOpenChange={() => setApiError("")}>
+      <AlertDialogTrigger asChild>
+        <button
+          aria-label="Eliminar fondo"
+          className="flex items-center justify-center size-8 rounded-md border-none bg-transparent text-muted-foreground hover:text-red-600 dark:hover:text-red-400 cursor-pointer transition-colors"
+        >
+          <Trash2 size={14} />
+        </button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>¿Eliminar fondo?</AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className="flex flex-col gap-2">
+              <p>
+                Se desactivará el fondo <strong>&ldquo;{name}&rdquo;</strong>. Los ingresos, gastos y transferencias asociados no se eliminarán.
+              </p>
+              {apiError && (
+                <p className="text-sm text-red-600 dark:text-red-400">{apiError}</p>
+              )}
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={loading}>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleDelete}
+            disabled={loading}
+            className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+          >
+            {loading ? "Eliminando..." : "Sí, eliminar"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

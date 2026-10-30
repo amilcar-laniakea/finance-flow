@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 type Source = { id: string; name: string; color: string | null; balance: number };
 type Member = { id: string; name: string; balance: number };
+type SplitRow = { memberId: string; amountUsd: string };
 
 export function AddTransferModal({ sources, members }: { sources: Source[]; members: Member[] }) {
   const [open, setOpen] = useState(false);
@@ -15,6 +16,7 @@ export function AddTransferModal({ sources, members }: { sources: Source[]; memb
   const [fromId, setFromId] = useState("");
   const [toId, setToId] = useState("");
   const [amount, setAmount] = useState("");
+  const [splits, setSplits] = useState<SplitRow[]>([{ memberId: "", amountUsd: "" }]);
   const router = useRouter();
 
   const list = transferType === "fund" ? sources : members;
@@ -22,11 +24,42 @@ export function AddTransferModal({ sources, members }: { sources: Source[]; memb
   const toItem = list.find((x) => x.id === toId);
   const amountNum = parseFloat(amount) || 0;
   const overdraft = fromItem && amountNum > fromItem.balance + 0.001;
-  const canSubmit = !loading && !!fromId && !!toId && fromId !== toId && amountNum > 0 && !overdraft;
+
+  // Splits validation
+  const splitsTotal = splits.reduce((sum, s) => sum + (parseFloat(s.amountUsd) || 0), 0);
+  const splitsExceed = splitsTotal > amountNum + 0.001;
+  const splitsUnder = amountNum > 0 && Math.abs(splitsTotal - amountNum) > 0.01;
+  const splitsAllFilled = splits.length > 0 && splits.every((s) => s.memberId && parseFloat(s.amountUsd) > 0);
+  const splitsValid = splitsAllFilled && !splitsExceed && !splitsUnder;
+
+  const canSubmit =
+    !loading &&
+    !!fromId &&
+    !!toId &&
+    fromId !== toId &&
+    amountNum > 0 &&
+    !overdraft &&
+    (transferType === "member" || splitsValid);
+
+  function addSplit() {
+    setSplits((p) => [...p, { memberId: "", amountUsd: "" }]);
+  }
+  function removeSplit(idx: number) {
+    setSplits((p) => p.filter((_, i) => i !== idx));
+  }
+  function updateSplit(idx: number, field: keyof SplitRow, value: string) {
+    setSplits((p) => p.map((row, i) => (i === idx ? { ...row, [field]: value } : row)));
+  }
+  function fillRemaining(idx: number) {
+    const otherSum = splits.reduce((sum, s, i) => i === idx ? sum : sum + (parseFloat(s.amountUsd) || 0), 0);
+    const rem = Math.max(0, amountNum - otherSum);
+    updateSplit(idx, "amountUsd", rem.toFixed(2));
+  }
 
   function handleClose() {
     setOpen(false);
     setFromId(""); setToId(""); setAmount(""); setError(""); setTransferType("fund");
+    setSplits([{ memberId: "", amountUsd: "" }]);
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -36,14 +69,30 @@ export function AddTransferModal({ sources, members }: { sources: Source[]; memb
     setError("");
 
     const fd = new FormData(e.currentTarget);
+    const body =
+      transferType === "fund"
+        ? {
+            transferType,
+            fromId,
+            toId,
+            amountUsd: amount,
+            memberSplits: splits.filter((s) => s.memberId && parseFloat(s.amountUsd) > 0),
+            description: (fd.get("description") as string) || undefined,
+            period: fd.get("period") as string,
+          }
+        : {
+            transferType,
+            fromId,
+            toId,
+            amountUsd: amount,
+            description: (fd.get("description") as string) || undefined,
+            period: fd.get("period") as string,
+          };
+
     const res = await fetch("/api/fund-transfers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        transferType, fromId, toId, amountUsd: amount,
-        description: (fd.get("description") as string) || undefined,
-        period: fd.get("period") as string,
-      }),
+      body: JSON.stringify(body),
     });
 
     setLoading(false);
@@ -74,7 +123,7 @@ export function AddTransferModal({ sources, members }: { sources: Source[]; memb
           className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
           onClick={(e) => e.target === e.currentTarget && handleClose()}
         >
-          <div className="bg-card rounded-xl p-8 w-full max-w-[460px] shadow-[0_20px_60px_rgba(0,0,0,0.15)] max-h-[92vh] overflow-y-auto mx-4">
+          <div className="bg-card rounded-xl p-8 w-full max-w-[480px] shadow-[0_20px_60px_rgba(0,0,0,0.15)] max-h-[92vh] overflow-y-auto mx-4">
             <h2 className="text-lg font-bold mb-6 text-foreground">Nueva Transferencia</h2>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -84,7 +133,7 @@ export function AddTransferModal({ sources, members }: { sources: Source[]; memb
                   <button
                     key={t}
                     type="button"
-                    onClick={() => { setTransferType(t); setFromId(""); setToId(""); }}
+                    onClick={() => { setTransferType(t); setFromId(""); setToId(""); setSplits([{ memberId: "", amountUsd: "" }]); }}
                     className={`flex-1 py-2.5 border-none cursor-pointer text-[13px] font-semibold transition-colors ${
                       transferType === t
                         ? "bg-blue-600 text-white"
@@ -127,16 +176,6 @@ export function AddTransferModal({ sources, members }: { sources: Source[]; memb
                     <option key={x.id} value={x.id}>{x.name} (saldo ${x.balance.toFixed(2)})</option>
                   ))}
                 </select>
-                {toItem && (
-                  <span className="text-xs text-green-600 dark:text-green-400">
-                    Saldo actual: <strong>${toItem.balance.toFixed(2)}</strong>
-                    {amountNum > 0 && (
-                      <span className="text-blue-600 dark:text-blue-400">
-                        {" → "}${(toItem.balance + amountNum).toFixed(2)}
-                      </span>
-                    )}
-                  </span>
-                )}
               </div>
 
               {/* Amount */}
@@ -156,8 +195,8 @@ export function AddTransferModal({ sources, members }: { sources: Source[]; memb
                     ✗ Saldo insuficiente. Disponible: ${fromItem.balance.toFixed(2)}
                   </span>
                 )}
-                {fromItem && toItem && amountNum > 0 && !overdraft && (
-                  <div className="text-xs text-muted-foreground bg-green-50 dark:bg-green-950/40 px-3 py-2 rounded-md mt-0.5">
+                {fromItem && toItem && amountNum > 0 && !overdraft && transferType === "fund" && (
+                  <div className="text-xs text-muted-foreground bg-muted px-3 py-2 rounded-md mt-0.5">
                     <strong>{fromItem.name}</strong>: ${fromItem.balance.toFixed(2)} →{" "}
                     <span className="text-red-600 dark:text-red-400">${(fromItem.balance - amountNum).toFixed(2)}</span>
                     {"  ·  "}
@@ -166,6 +205,79 @@ export function AddTransferModal({ sources, members }: { sources: Source[]; memb
                   </div>
                 )}
               </div>
+
+              {/* Member splits — only for fund transfers */}
+              {transferType === "fund" && (
+                <div className="border border-border rounded-lg p-4 bg-muted/50">
+                  <div className="flex justify-between items-center mb-3">
+                    <p className="text-[13px] font-semibold text-foreground">
+                      Deducir de miembros <span className="text-red-500">*</span>
+                    </p>
+                    <button
+                      type="button"
+                      onClick={addSplit}
+                      className="text-xs px-3 py-1 rounded border border-blue-600 bg-card text-blue-600 cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors"
+                    >
+                      + Agregar miembro
+                    </button>
+                  </div>
+
+                  {splits.map((row, idx) => (
+                    <div key={idx} className="flex gap-2 items-center mb-2">
+                      <select
+                        value={row.memberId}
+                        onChange={(e) => updateSplit(idx, "memberId", e.target.value)}
+                        className="flex-1 px-2.5 py-1.5 rounded-md border border-border text-[13px] bg-background text-foreground"
+                        required
+                      >
+                        <option value="">— Seleccionar miembro —</option>
+                        {members.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.name} (${m.balance.toFixed(2)})
+                          </option>
+                        ))}
+                      </select>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          step="0.01"
+                          placeholder="USD"
+                          value={row.amountUsd}
+                          onChange={(e) => updateSplit(idx, "amountUsd", e.target.value)}
+                          className="w-24 px-2.5 py-1.5 rounded-md border border-border text-[13px] bg-background text-foreground"
+                        />
+                      </div>
+                      {amountNum > 0 && (
+                        <button
+                          type="button"
+                          title="Llenar con el monto restante"
+                          onClick={() => fillRemaining(idx)}
+                          className="px-2 py-1.5 rounded-md border border-border bg-card text-[11px] text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
+                        >
+                          ↑resto
+                        </button>
+                      )}
+                      {splits.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeSplit(idx)}
+                          className="px-2.5 py-1.5 rounded-md border-none bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 cursor-pointer text-[13px] hover:bg-red-100 transition-colors shrink-0"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  ))}
+
+                  {amountNum > 0 && (
+                    <div className={`mt-2 text-xs ${splitsExceed ? "text-red-600 dark:text-red-400" : splitsUnder ? "text-orange-600 dark:text-orange-400" : "text-green-600 dark:text-green-400"}`}>
+                      {splitsExceed && `✗ Supera el total. Exceso: $${(splitsTotal - amountNum).toFixed(2)}`}
+                      {!splitsExceed && splitsUnder && `Pendiente por asignar: $${(amountNum - splitsTotal).toFixed(2)}`}
+                      {!splitsExceed && !splitsUnder && splitsTotal > 0 && `✓ Total cubierto: $${splitsTotal.toFixed(2)}`}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="flex flex-col gap-1">
                 <label className="text-[13px] font-medium text-foreground">Descripción (opcional)</label>

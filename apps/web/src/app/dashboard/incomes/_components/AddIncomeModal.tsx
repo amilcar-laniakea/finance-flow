@@ -24,10 +24,17 @@ export function AddIncomeModal({ sources, members }: { sources: Source[]; member
   const totalDistributed = distributions.reduce((sum, d) => sum + (parseFloat(d.amountUsd) || 0), 0);
   const remaining = (parseFloat(totalUsd) || 0) - totalDistributed;
   const distExceedsTotal = totalDistributed > (parseFloat(totalUsd) || 0) + 0.001;
+  const distUnderTotal = (parseFloat(totalUsd) || 0) > 0 && Math.abs(totalDistributed - (parseFloat(totalUsd) || 0)) > 0.01;
+  const distMissingMember = distributions.some((d) => !d.memberId);
+  const distValid =
+    distributions.length > 0 &&
+    !distExceedsTotal &&
+    !distUnderTotal &&
+    !distMissingMember;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (distExceedsTotal) return;
+    if (!distValid) return;
     setLoading(true);
     setError("");
 
@@ -135,10 +142,12 @@ export function AddIncomeModal({ sources, members }: { sources: Source[]; member
                 <input name="period" type="date" defaultValue={defaultPeriod} required className={inputCls} />
               </div>
 
-              {/* Distribution */}
+              {/* Distribution — obligatoria */}
               <div className="border border-border rounded-lg p-4 bg-muted/50">
                 <div className="flex justify-between items-center mb-3">
-                  <p className="text-[13px] font-semibold text-foreground">Distribución por miembro</p>
+                  <p className="text-[13px] font-semibold text-foreground">
+                    Distribución por miembro <span className="text-red-500">*</span>
+                  </p>
                   <button
                     type="button"
                     onClick={addDistRow}
@@ -149,7 +158,7 @@ export function AddIncomeModal({ sources, members }: { sources: Source[]; member
                 </div>
 
                 {distributions.length === 0 && (
-                  <p className="text-xs text-muted-foreground">Sin distribución — el ingreso queda en el fondo del hogar.</p>
+                  <p className="text-xs text-red-500 dark:text-red-400">Debes asignar el ingreso a al menos un miembro.</p>
                 )}
 
                 {distributions.map((row, idx) => (
@@ -157,9 +166,9 @@ export function AddIncomeModal({ sources, members }: { sources: Source[]; member
                     <select
                       value={row.memberId}
                       onChange={(e) => updateDistRow(idx, "memberId", e.target.value)}
-                      className="flex-1 px-2.5 py-1.5 rounded-md border border-border text-[13px] bg-background text-foreground"
+                      className={`flex-1 px-2.5 py-1.5 rounded-md border text-[13px] bg-background text-foreground ${!row.memberId ? "border-red-400" : "border-border"}`}
                     >
-                      <option value="">— Fondo hogar —</option>
+                      <option value="">— Seleccionar miembro —</option>
                       {members.map((m) => <option key={m.id} value={m.id}>{m.nickname ?? m.id.slice(0, 8)}</option>)}
                     </select>
                     <input
@@ -170,25 +179,23 @@ export function AddIncomeModal({ sources, members }: { sources: Source[]; member
                       onChange={(e) => updateDistRow(idx, "amountUsd", e.target.value)}
                       className="w-24 px-2.5 py-1.5 rounded-md border border-border text-[13px] bg-background text-foreground"
                     />
-                    <button
-                      type="button"
-                      onClick={() => removeDistRow(idx)}
-                      className="px-2.5 py-1.5 rounded-md border-none bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 cursor-pointer text-[13px] hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
-                    >
-                      ✕
-                    </button>
+                    {distributions.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeDistRow(idx)}
+                        className="px-2.5 py-1.5 rounded-md border-none bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 cursor-pointer text-[13px] hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+                      >
+                        ✕
+                      </button>
+                    )}
                   </div>
                 ))}
 
                 {distributions.length > 0 && (
-                  <div className={`mt-2 text-xs ${distExceedsTotal ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`}>
-                    Distribuido: <strong>${totalDistributed.toFixed(2)}</strong>
-                    {" · "}
-                    {distExceedsTotal ? (
-                      <span>✗ Supera el total del ingreso</span>
-                    ) : (
-                      <span>Restante (fondo): <strong>${remaining.toFixed(2)}</strong></span>
-                    )}
+                  <div className={`mt-2 text-xs ${distExceedsTotal ? "text-red-600 dark:text-red-400" : distUnderTotal ? "text-orange-600 dark:text-orange-400" : "text-green-600 dark:text-green-400"}`}>
+                    {distExceedsTotal && `✗ Supera el total del ingreso. Exceso: $${(totalDistributed - (parseFloat(totalUsd) || 0)).toFixed(2)}`}
+                    {!distExceedsTotal && distUnderTotal && `Pendiente por asignar: $${remaining.toFixed(2)}`}
+                    {!distExceedsTotal && !distUnderTotal && totalDistributed > 0 && `✓ Total cubierto: $${totalDistributed.toFixed(2)}`}
                   </div>
                 )}
               </div>
@@ -201,7 +208,7 @@ export function AddIncomeModal({ sources, members }: { sources: Source[]; member
                 </button>
                 <button
                   type="submit"
-                  disabled={loading || distExceedsTotal || sources.length === 0}
+                  disabled={loading || !distValid || sources.length === 0}
                   className="px-5 py-2 rounded-md bg-green-600 hover:bg-green-700 text-white text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors border-none"
                 >
                   {loading ? "Guardando..." : "Guardar"}
