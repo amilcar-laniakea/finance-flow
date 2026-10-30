@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { Search, X, List, BarChart2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { AddIncomeModal } from "./AddIncomeModal";
 import { EditIncomeModal } from "./EditIncomeModal";
@@ -282,8 +282,8 @@ export function IncomesClient({ rows, sources, members, distsByIncome }: Props) 
                       const label = src?.name ?? r.source ?? r.description ?? r.id;
                       const dists = distsByIncome[r.id] ?? [];
                       return (
-                        <>
-                          <tr key={r.id} className={dists.length > 0 ? "" : "border-b border-border/60"}>
+                        <React.Fragment key={r.id}>
+                          <tr className={dists.length > 0 ? "" : "border-b border-border/60"}>
                             <td className="px-4 py-3">
                               {src ? (
                                 <span className="flex items-center gap-1.5">
@@ -332,7 +332,7 @@ export function IncomesClient({ rows, sources, members, distsByIncome }: Props) 
                               </td>
                             </tr>
                           )}
-                        </>
+                        </React.Fragment>
                       );
                     })}
                   </tbody>
