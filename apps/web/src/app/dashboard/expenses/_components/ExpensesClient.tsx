@@ -4,14 +4,13 @@ import { useState, useMemo, useRef, useEffect } from "react";
 
 function formatTimeVE(iso: string): string {
   const d = new Date(iso);
-  // Venezuela is UTC-4 (no DST)
   const ve = new Date(d.getTime() - 4 * 60 * 60 * 1000);
   const h = ve.getUTCHours();
   const m = String(ve.getUTCMinutes()).padStart(2, "0");
   const s = String(ve.getUTCSeconds()).padStart(2, "0");
-  const ampm = h >= 12 ? "p. m." : "a. m.";
+  const ampm = h >= 12 ? "p. m." : "a. m.";
   const h12 = String(h % 12 || 12).padStart(2, "0");
-  return `${h12}:${m}:${s} ${ampm}`;
+  return `${h12}:${m}:${s} ${ampm}`;
 }
 import { Search, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronDown, List, BarChart2 } from "lucide-react";
 import { AddExpenseModal } from "./AddExpenseModal";
@@ -336,8 +335,8 @@ export function ExpensesClient({
                             <span className="text-xs text-muted-foreground">{e.merchant}</span>
                           )}
                           {src && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-green-50 dark:bg-green-950/40 px-2 py-px text-xs font-medium text-green-700 dark:text-green-400">
-                              <span className="inline-block size-1.5 rounded-full" style={{ background: src.color ?? "#16A34A" }} />
+                            <span className="inline-flex items-center gap-1 rounded-full bg-green-50 dark:bg-green-950/40 px-2 py-px text-xs font-medium text-green-700 dark:text-green-400 whitespace-nowrap">
+                              <span className="inline-block size-1.5 rounded-full shrink-0" style={{ background: src.color ?? "#16A34A" }} />
                               {src.name}
                             </span>
                           )}
@@ -348,7 +347,7 @@ export function ExpensesClient({
                               const tinfo = typeMap[ta.expenseTypeId];
                               const tcolor = tinfo?.color ?? "#7C3AED";
                               return (
-                                <span key={i} className="rounded-full px-2 py-px text-xs font-semibold" style={{ background: `${tcolor}22`, color: tcolor }}>
+                                <span key={i} className="rounded-full px-2 py-px text-xs font-semibold whitespace-nowrap" style={{ background: `${tcolor}22`, color: tcolor }}>
                                   {tinfo?.name ?? "?"}
                                 </span>
                               );
@@ -357,24 +356,25 @@ export function ExpensesClient({
                         )}
                         <div className="flex items-center gap-2 mt-1.5">
                           {e.memberId && (
-                            <span className="rounded-full bg-muted px-2 py-px text-xs text-muted-foreground">
+                            <span className="rounded-full bg-muted px-2 py-px text-xs text-muted-foreground whitespace-nowrap">
                               {memberMap[e.memberId] ?? "—"}
                             </span>
                           )}
-                          <span className="text-xs text-muted-foreground">
-                            {e.occurredAt ? new Date(e.occurredAt).toLocaleDateString("es-VE") : "—"}
-                            {e.occurredAt && (
-                              <span className="ml-1 tabular-nums">{formatTimeVE(e.occurredAt)}</span>
-                            )}
-                          </span>
+                          {e.occurredAt && (
+                            <span className="text-xs text-muted-foreground whitespace-nowrap tabular-nums">
+                              {new Date(e.occurredAt).toLocaleDateString("es-VE")}
+                              {" "}{formatTimeVE(e.occurredAt)}
+                            </span>
+                          )}
+                          {!e.occurredAt && <span className="text-xs text-muted-foreground">—</span>}
                         </div>
                       </div>
                       <div className="flex flex-col items-end shrink-0 gap-1">
-                        <span className="font-bold text-sm text-red-600 dark:text-red-400">
+                        <span className="font-bold text-sm text-red-600 dark:text-red-400 whitespace-nowrap">
                           ${parseFloat(e.amountUsd).toFixed(2)}
                         </span>
                         {e.amountBs && (
-                          <span className="text-xs text-muted-foreground">{e.amountBs} Bs</span>
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">{parseFloat(e.amountBs).toFixed(2)} Bs</span>
                         )}
                         <div className="flex gap-0.5 mt-0.5">
                           <EditExpenseModal
@@ -416,7 +416,7 @@ export function ExpensesClient({
 
               {/* Actual table */}
               <div ref={tableScrollRef} onScroll={syncTopFromBottom} className="overflow-x-auto">
-                <table className="w-full border-collapse text-sm min-w-[820px]">
+                <table className="w-full border-collapse text-sm min-w-[820px] [&_td]:align-middle">
                   <thead>
                     <tr className="border-b border-border bg-muted/50 text-muted-foreground text-xs">
                       <th className="text-left px-4 py-3 font-semibold uppercase tracking-wide">Descripción</th>
@@ -465,7 +465,7 @@ export function ExpensesClient({
                           <td className="px-4 py-3 text-muted-foreground text-[13px]">{e.merchant ?? "—"}</td>
                           <td className="px-4 py-3">
                             {e.memberId ? (
-                              <span className="rounded-full bg-muted px-2 py-px text-xs font-medium text-muted-foreground">
+                              <span className="rounded-full bg-muted px-2 py-px text-xs font-medium text-muted-foreground whitespace-nowrap">
                                 {memberMap[e.memberId] ?? "—"}
                               </span>
                             ) : (
@@ -475,13 +475,13 @@ export function ExpensesClient({
                           <td className="px-4 py-3 text-right font-bold text-red-600 dark:text-red-400">
                             ${parseFloat(e.amountUsd).toFixed(2)}
                           </td>
-                          <td className="px-4 py-3 text-right text-muted-foreground text-[13px]">
-                            {e.amountBs ? `${e.amountBs} Bs` : "—"}
+                          <td className="px-4 py-3 text-right text-muted-foreground text-[13px] whitespace-nowrap">
+                            {e.amountBs ? `${parseFloat(e.amountBs).toFixed(2)} Bs` : "—"}
                           </td>
                           <td className="px-4 py-3 text-right text-muted-foreground text-[13px]">
                             {e.occurredAt ? new Date(e.occurredAt).toLocaleDateString("es-VE") : "—"}
                           </td>
-                          <td className="px-4 py-3 text-right text-muted-foreground text-[13px] tabular-nums">
+                          <td className="px-4 py-3 text-right text-muted-foreground text-[13px] tabular-nums whitespace-nowrap">
                             {e.occurredAt ? formatTimeVE(e.occurredAt) : "—"}
                           </td>
                           <td className="px-2 py-3">
@@ -693,7 +693,7 @@ export function ExpensesClient({
               <span className="text-sm text-muted-foreground">
                 Total Bs:{" "}
                 <strong>
-                  {summary.grandTotalBs.toLocaleString("es-VE", { minimumFractionDigits: 2 })} Bs
+                  {summary.grandTotalBs.toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs
                 </strong>
               </span>
             )}

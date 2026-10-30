@@ -204,28 +204,22 @@ function UserRow({
   const mb = balanceMap[user.id];
 
   return (
-    <div className="flex items-center justify-between gap-3 px-4 py-3.5 border-b border-border/60 last:border-b-0 min-w-0">
-      {/* Avatar + name/email + actions */}
-      <div className="flex items-center gap-3 min-w-0 flex-1">
-        <div className={`size-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
-          isActive ? "bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400" : "bg-muted text-muted-foreground"
-        }`}>
-          {(user.fullName ?? user.email)[0]?.toUpperCase()}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-2">
-            <p className="font-semibold text-sm text-foreground truncate">{user.fullName ?? "—"}</p>
-            <div className="flex items-center gap-0.5 shrink-0">
-              <EditUserModal user={{ id: user.id, fullName: user.fullName, email: user.email, role: user.role }} />
-              <DeleteUserButton id={user.id} name={user.fullName ?? user.email} />
-            </div>
-          </div>
-          <p className="text-[13px] text-muted-foreground truncate">{user.email}</p>
-        </div>
+    <div className="flex items-center gap-3 px-4 py-3.5 border-b border-border/60 last:border-b-0 min-w-0">
+      {/* Avatar */}
+      <div className={`size-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
+        isActive ? "bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400" : "bg-muted text-muted-foreground"
+      }`}>
+        {(user.fullName ?? user.email)[0]?.toUpperCase()}
       </div>
 
-      {/* Badges */}
-      <div className="hidden sm:flex items-center gap-2 flex-wrap justify-end shrink-0">
+      {/* Name + email — mobile: flex-1, desktop: fixed width */}
+      <div className="min-w-0 flex-1 md:flex-none md:w-52">
+        <p className="font-semibold text-sm text-foreground truncate">{user.fullName ?? "—"}</p>
+        <p className="text-[13px] text-muted-foreground truncate">{user.email}</p>
+      </div>
+
+      {/* Badges — desktop center */}
+      <div className="hidden md:flex flex-1 items-center gap-2 flex-wrap justify-center">
         <span className="text-xs px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground whitespace-nowrap">
           {roleLabel[user.role ?? "member"] ?? user.role}
         </span>
@@ -245,6 +239,12 @@ function UserRow({
             {mb.balance >= 0 ? "+" : ""}${mb.balance.toFixed(2)}
           </span>
         )}
+      </div>
+
+      {/* Actions — always right */}
+      <div className="flex items-center gap-0.5 shrink-0">
+        <EditUserModal user={{ id: user.id, fullName: user.fullName, email: user.email, role: user.role }} />
+        <DeleteUserButton id={user.id} name={user.fullName ?? user.email} />
       </div>
     </div>
   );

@@ -223,15 +223,15 @@ export function IncomesClient({ rows, sources, members, distsByIncome }: Props) 
                         {src && <span className="size-2 rounded-full shrink-0 inline-block" style={{ background: src.color ?? "#16A34A" }} />}
                         {src?.name ?? r.source ?? "—"}
                       </div>
-                      <span className="font-bold text-sm text-green-600 dark:text-green-400 shrink-0">
+                      <span className="font-bold text-sm text-green-600 dark:text-green-400 shrink-0 whitespace-nowrap">
                         ${parseFloat(r.amountUsd).toFixed(2)}
                       </span>
                     </div>
                     {r.description && <p className="text-[13px] text-muted-foreground mb-1">{r.description}</p>}
                     <div className="flex items-center justify-between">
-                      <span className="text-[12px] text-muted-foreground">
+                      <span className="text-[12px] text-muted-foreground whitespace-nowrap">
                         {r.occurredAt ? new Date(r.occurredAt).toLocaleDateString("es-VE") : "—"}
-                        {r.amountBs ? ` · ${r.amountBs} Bs` : ""}
+                        {r.amountBs ? ` · ${parseFloat(r.amountBs).toFixed(2)} Bs` : ""}
                       </span>
                       <div className="flex items-center gap-0.5">
                         <EditIncomeModal
@@ -246,7 +246,7 @@ export function IncomesClient({ rows, sources, members, distsByIncome }: Props) 
                     {dists.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-2">
                         {dists.map((d, idx) => (
-                          <span key={idx} className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
+                          <span key={idx} className={`text-[11px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${
                             d.memberId ? "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400" : "bg-muted text-muted-foreground"
                           }`}>
                             {d.fullName ?? "Fondo hogar"} · ${parseFloat(d.amountUsd).toFixed(2)}
@@ -283,58 +283,53 @@ export function IncomesClient({ rows, sources, members, distsByIncome }: Props) 
                       const label = src?.name ?? r.source ?? r.description ?? r.id;
                       const dists = distsByIncome[r.id] ?? [];
                       return (
-                        <React.Fragment key={r.id}>
-                          <tr className={dists.length > 0 ? "" : "border-b border-border/60"}>
-                            <td className="px-4 py-3">
-                              {src ? (
-                                <span className="flex items-center gap-1.5">
-                                  <span className="size-2 rounded-full shrink-0 inline-block" style={{ background: src.color ?? "#16A34A" }} />
-                                  <span className="font-medium text-green-600 dark:text-green-400">{src.name}</span>
-                                </span>
-                              ) : (
-                                <span className="font-medium text-green-600 dark:text-green-400">{r.source ?? "—"}</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-3 text-muted-foreground">{r.description ?? "—"}</td>
-                            <td className="px-4 py-3 text-right font-bold text-green-600 dark:text-green-400">
-                              ${parseFloat(r.amountUsd).toFixed(2)}
-                            </td>
-                            <td className="px-4 py-3 text-right text-muted-foreground">
-                              {r.amountBs ? `${r.amountBs} Bs` : "—"}
-                            </td>
-                            <td className="px-4 py-3 text-right text-muted-foreground">
-                              {r.occurredAt ? new Date(r.occurredAt).toLocaleDateString("es-VE") : "—"}
-                            </td>
-                            <td className="px-2 py-3 text-center">
-                              <div className="flex items-center justify-center gap-0.5">
-                                <EditIncomeModal
-                                  income={{ id: r.id, source: r.source, sourceId: r.sourceId, description: r.description, memberId: r.memberId, amountUsd: r.amountUsd, amountBs: r.amountBs, exchangeRate: r.exchangeRate, period: r.period as any }}
-                                  sources={sources}
-                                  members={members}
-                                  initialDists={dists}
-                                />
-                                <DeleteIncomeButton id={r.id} label={label} />
+                        <tr key={r.id} className="border-b border-border/60">
+                          <td className="px-4 py-3">
+                            {src ? (
+                              <span className="flex items-center gap-1.5">
+                                <span className="size-2 rounded-full shrink-0 inline-block" style={{ background: src.color ?? "#16A34A" }} />
+                                <span className="font-medium text-green-600 dark:text-green-400 whitespace-nowrap">{src.name}</span>
+                              </span>
+                            ) : (
+                              <span className="font-medium text-green-600 dark:text-green-400 whitespace-nowrap">{r.source ?? "—"}</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground">
+                            <div>{r.description ?? "—"}</div>
+                            {dists.length > 0 && (
+                              <div className="flex gap-1.5 flex-wrap items-center mt-1.5">
+                                <span className="text-[11px] text-muted-foreground">Dist.:</span>
+                                {dists.map((d, idx) => (
+                                  <span key={idx} className={`text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${
+                                    d.memberId ? "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400" : "bg-muted text-muted-foreground"
+                                  }`}>
+                                    {d.fullName ?? "Fondo hogar"} · ${parseFloat(d.amountUsd).toFixed(2)}
+                                  </span>
+                                ))}
                               </div>
-                            </td>
-                          </tr>
-
-                          {dists.length > 0 && (
-                            <tr key={`${r.id}-dist`} className="border-b border-border/60">
-                              <td colSpan={6} className="px-4 pb-2.5 pl-6">
-                                <div className="flex gap-1.5 flex-wrap items-center">
-                                  <span className="text-[11px] text-muted-foreground mr-0.5">Distribución:</span>
-                                  {dists.map((d, idx) => (
-                                    <span key={idx} className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                                      d.memberId ? "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400" : "bg-muted text-muted-foreground"
-                                    }`}>
-                                      {d.fullName ?? "Fondo hogar"} · ${parseFloat(d.amountUsd).toFixed(2)}
-                                    </span>
-                                  ))}
-                                </div>
-                              </td>
-                            </tr>
-                          )}
-                        </React.Fragment>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-right font-bold text-green-600 dark:text-green-400 whitespace-nowrap">
+                            ${parseFloat(r.amountUsd).toFixed(2)}
+                          </td>
+                          <td className="px-4 py-3 text-right text-muted-foreground whitespace-nowrap">
+                            {r.amountBs ? `${parseFloat(r.amountBs).toFixed(2)} Bs` : "—"}
+                          </td>
+                          <td className="px-4 py-3 text-right text-muted-foreground whitespace-nowrap">
+                            {r.occurredAt ? new Date(r.occurredAt).toLocaleDateString("es-VE") : "—"}
+                          </td>
+                          <td className="px-2 py-3 text-center">
+                            <div className="flex items-center justify-center gap-0.5">
+                              <EditIncomeModal
+                                income={{ id: r.id, source: r.source, sourceId: r.sourceId, description: r.description, memberId: r.memberId, amountUsd: r.amountUsd, amountBs: r.amountBs, exchangeRate: r.exchangeRate, period: r.period as any }}
+                                sources={sources}
+                                members={members}
+                                initialDists={dists}
+                              />
+                              <DeleteIncomeButton id={r.id} label={label} />
+                            </div>
+                          </td>
+                        </tr>
                       );
                     })}
                   </tbody>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Fragment } from "react";
 import { useRouter } from "next/navigation";
 import { RefreshCw, Scale, ChevronDown, ChevronUp, X, KeyRound } from "lucide-react";
 
@@ -56,6 +56,20 @@ const STATUS_COLOR: Record<string, { bg: string; text: string; border: string; d
 const STATUS_LABEL: Record<string, string> = {
   green: "Sin discrepancia", yellow: "Discrepancia leve", orange: "Discrepancia moderada", red: "Discrepancia crítica",
 };
+
+const STATUS_LABEL_SHORT: Record<string, string> = {
+  green: "OK", yellow: "Leve", orange: "Moderada", red: "Crítica",
+};
+
+function StatusBadgeCompact({ status }: { status: string }) {
+  const c = STATUS_COLOR[status] ?? STATUS_COLOR["red"]!;
+  return (
+    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap ${c.bg} ${c.text} border ${c.border}`}>
+      <span className={`inline-block size-1.5 rounded-full shrink-0 ${c.dot}`} />
+      {STATUS_LABEL_SHORT[status] ?? status}
+    </span>
+  );
+}
 
 function statusConfirmText(status: string, discrepancy: number): string {
   const abs = Math.abs(discrepancy).toFixed(2);
@@ -214,25 +228,7 @@ export function AuditClient({
   const correctionsByAudit = new Map(corrections.map((c) => [c.auditId, c]));
 
   return (
-    <div className="relative p-6 max-w-5xl mx-auto space-y-8 w-full min-w-0 overflow-hidden">
-      {/* Overlay — Binance not configured */}
-      {!binanceEnabled && (
-        <div className="absolute inset-0 z-40 flex items-start justify-center pt-24 bg-background/80 backdrop-blur-sm rounded-xl">
-          <div className="flex flex-col items-center gap-4 text-center px-6 py-8 max-w-sm bg-card border border-border rounded-2xl shadow-xl">
-            <div className="flex items-center justify-center w-14 h-14 rounded-full bg-muted">
-              <KeyRound className="text-muted-foreground" size={28} />
-            </div>
-            <div className="space-y-1">
-              <p className="text-base font-semibold text-foreground">Módulo no disponible</p>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Las variables <code className="font-mono text-xs bg-muted px-1 py-0.5 rounded">BINANCE_API_KEY</code> y{" "}
-                <code className="font-mono text-xs bg-muted px-1 py-0.5 rounded">BINANCE_API_SECRET</code> no están configuradas en este entorno.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
+    <div className="p-6 max-w-5xl mx-auto space-y-8 w-full min-w-0 overflow-hidden">
       {/* Confirmation dialog */}
       {showConfirm && live && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -347,7 +343,21 @@ export function AuditClient({
       </div>
 
       {/* Live Binance balance card */}
-      <div className="rounded-xl border border-border bg-card p-5 space-y-4 w-full min-w-0">
+      <div className="relative rounded-xl border border-border bg-card p-5 space-y-4 w-full min-w-0">
+        {!binanceEnabled && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-xl bg-card/90 backdrop-blur-[2px]">
+            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-muted">
+              <KeyRound className="text-muted-foreground" size={24} />
+            </div>
+            <div className="text-center space-y-1 px-6">
+              <p className="text-sm font-semibold text-foreground">Sincronización no disponible</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Configura <code className="font-mono bg-muted px-1 py-0.5 rounded">BINANCE_API_KEY</code> y{" "}
+                <code className="font-mono bg-muted px-1 py-0.5 rounded">BINANCE_API_SECRET</code> en el entorno para habilitar.
+              </p>
+            </div>
+          </div>
+        )}
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-foreground">Saldo en tiempo real (Binance USDT)</h2>
           <button
@@ -447,6 +457,7 @@ export function AuditClient({
           </>
         )}
       </div>
+      {/* end live card */}
 
       {/* Audit history */}
       <div>
@@ -476,8 +487,8 @@ export function AuditClient({
                     const disc = parseFloat(a.discrepancyUsd);
                     const isCorrectingThis = correctingId === a.id;
                     return (
-                      <>
-                        <tr key={a.id} className="border-b border-border/60 hover:bg-muted/30">
+                      <Fragment key={a.id}>
+                        <tr className="border-b border-border/60 hover:bg-muted/30">
                           <td className="px-4 py-2.5 whitespace-nowrap text-muted-foreground text-xs">
                             {a.createdAt ? new Date(a.createdAt).toLocaleString("es-VE") : "—"}
                           </td>
@@ -488,7 +499,7 @@ export function AuditClient({
                           <td className={`px-4 py-2.5 text-right font-bold ${disc > 0 ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"}`}>
                             {disc >= 0 ? "+" : ""}${disc.toFixed(2)}
                           </td>
-                          <td className="px-4 py-2.5 text-center"><StatusBadge status={a.status} /></td>
+                          <td className="px-4 py-2.5 text-center"><StatusBadgeCompact status={a.status} /></td>
                           <td className="px-4 py-2.5 text-center text-[11px] text-muted-foreground capitalize">{a.triggeredBy}</td>
                           <td className="px-3 py-2.5 text-center">
                             {corr ? (
@@ -505,7 +516,7 @@ export function AuditClient({
                           </td>
                         </tr>
                         {isCorrectingThis && !corr && (
-                          <tr key={`${a.id}-form`} className="border-b border-border/60 bg-muted/20">
+                          <tr className="border-b border-border/60 bg-muted/20">
                             <td colSpan={9} className="px-4 py-4">
                               <div className="flex flex-wrap gap-3 items-end">
                                 <div className="flex flex-col gap-1">
@@ -571,7 +582,7 @@ export function AuditClient({
                           </tr>
                         )}
                         {corr && (
-                          <tr key={`${a.id}-corr`} className="border-b border-border/60 bg-green-50/30 dark:bg-green-950/10">
+                          <tr className="border-b border-border/60 bg-green-50/30 dark:bg-green-950/10">
                             <td colSpan={9} className="px-4 py-2 text-xs text-muted-foreground">
                               <span className="text-green-600 dark:text-green-400 font-medium mr-2">✓ Corrección{corr.isAutomatic === "true" ? " automática" : " manual"}:</span>
                               {corr.fundName} · {corr.memberName} · ${parseFloat(corr.adjustmentUsd).toFixed(2)}
@@ -580,7 +591,7 @@ export function AuditClient({
                             </td>
                           </tr>
                         )}
-                      </>
+                      </Fragment>
                     );
                   })}
                 </tbody>
@@ -622,7 +633,7 @@ export function AuditClient({
                       <td className="px-4 py-2.5">
                         {c.tag && <span className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-xs">{c.tag}</span>}
                       </td>
-                      <td className="px-4 py-2.5 text-center"><StatusBadge status={c.status} /></td>
+                      <td className="px-4 py-2.5 text-center"><StatusBadgeCompact status={c.status} /></td>
                       <td className="px-4 py-2.5 text-center text-xs text-muted-foreground">
                         {c.isAutomatic === "true" ? "Auto" : "Manual"}
                       </td>
