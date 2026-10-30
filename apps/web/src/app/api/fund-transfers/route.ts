@@ -63,6 +63,7 @@ export async function POST(req: Request) {
     toId?: string;
     fromSourceId?: string;
     toSourceId?: string;
+    fromMemberId?: string;
     amountUsd: string;
     description?: string;
     period?: string;
@@ -86,9 +87,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Sin permisos para transferencias entre instancias" }, { status: 403 });
     }
 
-    const { fromSourceId, toSourceId } = body;
+    const { fromSourceId, toSourceId, fromMemberId } = body;
     if (!fromSourceId || !toSourceId) {
       return NextResponse.json({ error: "Se requieren fromSourceId y toSourceId" }, { status: 400 });
+    }
+    if (!fromMemberId) {
+      return NextResponse.json({ error: "Se requiere el miembro que realiza la transferencia" }, { status: 400 });
     }
     if (fromSourceId === toSourceId) {
       return NextResponse.json({ error: "El origen y destino deben ser diferentes" }, { status: 400 });
@@ -118,6 +122,7 @@ export async function POST(req: Request) {
       transferType: "cross-instance",
       fromSourceId,
       toSourceId,
+      fromMemberId,
       amountUsd,
       description: description || null,
       period: period ? new Date(period) : new Date(),

@@ -13,15 +13,18 @@ import {
 import { QuickAddSourceModal } from "./QuickAddSourceModal";
 
 type Source = { id: string; name: string; color: string | null; balanceUsd?: number };
+type Member = { id: string; name: string; balanceUsd: number };
 type OtherHousehold = { id: string; name: string; isMain: boolean; sources: Source[] };
 
 export function AddInstanceTransferModal({
   currentSources: initialSources,
+  currentMembers,
   otherHouseholds,
   currentHouseholdId,
   currentHouseholdName,
 }: {
   currentSources: Source[];
+  currentMembers: Member[];
   otherHouseholds: OtherHousehold[];
   currentHouseholdId: string;
   currentHouseholdName?: string;
@@ -35,6 +38,7 @@ export function AddInstanceTransferModal({
   const [localSources, setLocalSources] = useState<Source[]>(initialSources);
 
   const [fromSourceId, setFromSourceId] = useState("");
+  const [fromMemberId, setFromMemberId] = useState("");
   const [toHouseholdId, setToHouseholdId] = useState("");
   const [toSourceId, setToSourceId] = useState("");
   const [amountUsd, setAmountUsd] = useState("");
@@ -46,6 +50,7 @@ export function AddInstanceTransferModal({
   const selectedDestHousehold = otherHouseholds.find((h) => h.id === toHouseholdId);
   const fromSource = localSources.find((s) => s.id === fromSourceId);
   const toSource = selectedDestHousehold?.sources.find((s) => s.id === toSourceId);
+  const fromMember = currentMembers.find((m) => m.id === fromMemberId);
 
   function handleHouseholdChange(id: string) {
     setToHouseholdId(id);
@@ -55,6 +60,7 @@ export function AddInstanceTransferModal({
   function handleClose() {
     setOpen(false);
     setFromSourceId("");
+    setFromMemberId("");
     setToHouseholdId("");
     setToSourceId("");
     setAmountUsd("");
@@ -70,7 +76,7 @@ export function AddInstanceTransferModal({
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!fromSourceId || !toSourceId || !amountUsd) return;
+    if (!fromSourceId || !fromMemberId || !toSourceId || !amountUsd) return;
     setShowConfirm(true);
   }
 
@@ -85,6 +91,7 @@ export function AddInstanceTransferModal({
       body: JSON.stringify({
         transferType: "cross-instance",
         fromSourceId,
+        fromMemberId,
         toSourceId,
         amountUsd,
         description: description || undefined,
@@ -104,7 +111,7 @@ export function AddInstanceTransferModal({
     router.refresh();
   }
 
-  const canSubmit = !!fromSourceId && !!toSourceId && !!amountUsd && !loading;
+  const canSubmit = !!fromSourceId && !!fromMemberId && !!toSourceId && !!amountUsd && !loading;
 
   const originLabel = fromSource
     ? `${currentHouseholdName ?? "Esta instancia"} · ${fromSource.name}`
@@ -139,6 +146,9 @@ export function AddInstanceTransferModal({
                   <div className="flex flex-col gap-0.5">
                     <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Origen</span>
                     <span className="font-medium text-foreground">{originLabel}</span>
+                    {fromMember && (
+                      <span className="text-xs text-muted-foreground">por {fromMember.name}</span>
+                    )}
                   </div>
                   <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
                   <div className="flex flex-col gap-0.5">
@@ -157,9 +167,7 @@ export function AddInstanceTransferModal({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirm}>
-              Aceptar
-            </AlertDialogAction>
+            <AlertDialogAction onClick={handleConfirm}>Aceptar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -172,7 +180,7 @@ export function AddInstanceTransferModal({
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            {/* Source (origin) + quick-add button */}
+            {/* Source fund (origin) + quick-add button */}
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
                 <Label>Fondo origen *</Label>
@@ -197,7 +205,34 @@ export function AddInstanceTransferModal({
                         {s.color && (
                           <span className="inline-block size-2 rounded-full shrink-0" style={{ background: s.color }} />
                         )}
-                        {s.name}
+                        <span>{s.name}</span>
+                        {s.balanceUsd !== undefined && (
+                          <span className="ml-auto text-xs text-muted-foreground">
+                            (${s.balanceUsd.toFixed(2)})
+                          </span>
+                        )}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Member (origin) */}
+            <div className="flex flex-col gap-1.5">
+              <Label>Miembro que transfiere *</Label>
+              <Select value={fromMemberId} onValueChange={setFromMemberId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="— Seleccionar miembro —" />
+                </SelectTrigger>
+                <SelectContent>
+                  {currentMembers.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      <span className="flex items-center gap-2">
+                        <span>{m.name}</span>
+                        <span className="ml-auto text-xs text-muted-foreground">
+                          (${m.balanceUsd.toFixed(2)})
+                        </span>
                       </span>
                     </SelectItem>
                   ))}

@@ -1,4 +1,4 @@
-import { db, incomeSources, fundTransfers, households, incomes, expenses, expenseSourceSplits } from "@repo/db";
+import { db, incomeSources, fundTransfers, households, incomes, expenses, expenseSourceSplits, users, incomeDistributions } from "@repo/db";
 import { eq, and, isNull, or, inArray, desc, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getInstanceContext } from "@/lib/getInstanceContext";
@@ -13,6 +13,14 @@ async function getFundBalance(sourceId: string, householdId: string): Promise<nu
   return parseFloat(inc?.t ?? "0") - parseFloat(exp?.t ?? "0") - parseFloat(spl?.t ?? "0") + parseFloat(tin?.t ?? "0") - parseFloat(tout?.t ?? "0");
 }
 
+async function getMemberBalance(memberId: string, householdId: string): Promise<number> {
+  const [dist] = await db.select({ t: sql<string>`COALESCE(SUM(${incomeDistributions.amountUsd}),0)` }).from(incomeDistributions).innerJoin(incomes, and(eq(incomeDistributions.incomeId, incomes.id), isNull(incomes.deletedAt), eq(incomes.householdId, householdId))).where(eq(incomeDistributions.memberId, memberId));
+  const [exp] = await db.select({ t: sql<string>`COALESCE(SUM(amount_usd),0)` }).from(expenses).where(and(eq(expenses.memberId, memberId), isNull(expenses.deletedAt), eq(expenses.householdId, householdId)));
+  const [tin] = await db.select({ t: sql<string>`COALESCE(SUM(amount_usd),0)` }).from(fundTransfers).where(and(eq(fundTransfers.toMemberId, memberId), isNull(fundTransfers.deletedAt), eq(fundTransfers.householdId, householdId)));
+  const [tout] = await db.select({ t: sql<string>`COALESCE(SUM(amount_usd),0)` }).from(fundTransfers).where(and(eq(fundTransfers.fromMemberId, memberId), isNull(fundTransfers.deletedAt), eq(fundTransfers.householdId, householdId)));
+  return parseFloat(dist?.t ?? "0") - parseFloat(exp?.t ?? "0") + parseFloat(tin?.t ?? "0") - parseFloat(tout?.t ?? "0");
+}
+
 export default async function InstanceTransfersPage() {
   const ctx = await getInstanceContext();
   if (!ctx || !ctx.canRead) redirect("/dashboard");
@@ -21,7 +29,7 @@ export default async function InstanceTransfersPage() {
   const hid = ctx.activeHousehold.id;
   const accessibleIds = ctx.availableInstances.map((h) => h.id);
 
-  const [currentSources, allHouseholds] = await Promise.all([
+  const [rawCurrentSources, allHouseholds, rawMembers] = await Promise.all([
     db.select({ id: incomeSources.id, name: incomeSources.name, color: incomeSources.color })
       .from(incomeSources)
       .where(and(eq(incomeSources.isActive, true), eq(incomeSources.householdId, hid)))
@@ -29,28 +37,43 @@ export default async function InstanceTransfersPage() {
     db.select({ id: households.id, name: households.name, isMain: households.isMain, isPersonal: households.isPersonal })
       .from(households)
       .where(inArray(households.id, accessibleIds)),
+    db.select({ id: users.id, name: users.fullName })
+      .from(users)
+      .where(ctx.activeHousehold.isPersonal ? eq(users.personalHouseholdId, hid) : undefined)
+      .orderBy(users.fullName),
   ]);
 
-  const otherHouseholds = await Promise.all(
-    allHouseholds
-      .filter((h) => h.id !== hid)
-      .map(async (h) => {
-        const rawSources = await db
-          .select({ id: incomeSources.id, name: incomeSources.name, color: incomeSources.color })
-          .from(incomeSources)
-          .where(and(eq(incomeSources.isActive, true), eq(incomeSources.householdId, h.id)))
-          .orderBy(incomeSources.name);
+  const [currentSources, currentMembers, otherHouseholds] = await Promise.all([
+    Promise.all(rawCurrentSources.map(async (s) => ({
+      ...s,
+      balanceUsd: await getFundBalance(s.id, hid),
+    }))),
+    Promise.all(rawMembers.map(async (u) => ({
+      id: u.id,
+      name: u.name ?? u.id.slice(0, 8),
+      balanceUsd: await getMemberBalance(u.id, hid),
+    }))),
+    Promise.all(
+      allHouseholds
+        .filter((h) => h.id !== hid)
+        .map(async (h) => {
+          const rawSources = await db
+            .select({ id: incomeSources.id, name: incomeSources.name, color: incomeSources.color })
+            .from(incomeSources)
+            .where(and(eq(incomeSources.isActive, true), eq(incomeSources.householdId, h.id)))
+            .orderBy(incomeSources.name);
 
-        const sources = await Promise.all(
-          rawSources.map(async (s) => ({
-            ...s,
-            balanceUsd: await getFundBalance(s.id, h.id),
-          }))
-        );
+          const sources = await Promise.all(
+            rawSources.map(async (s) => ({
+              ...s,
+              balanceUsd: await getFundBalance(s.id, h.id),
+            }))
+          );
 
-        return { ...h, sources };
-      })
-  );
+          return { ...h, sources };
+        })
+    ),
+  ]);
 
   const householdMap = Object.fromEntries(allHouseholds.map((h) => [h.id, h.name]));
 
@@ -106,6 +129,7 @@ export default async function InstanceTransfersPage() {
   return (
     <InstanceTransfersClient
       currentSources={currentSources}
+      currentMembers={currentMembers}
       currentHouseholdId={hid}
       currentHouseholdName={currentHouseholdName}
       otherHouseholds={otherHouseholds}

@@ -67,22 +67,22 @@ function buildNavGroups(role: string): NavGroup[] {
     {
       label: "PRINCIPAL",
       items: [
-        { href: "/dashboard", icon: Home, label: "Inicio", exact: true },
-        { href: "/dashboard/members", icon: Users, label: "Usuarios" },
+        { href: "/dashboard", icon: Home, label: "Inicio", exact: true, description: "Resumen general" },
+        { href: "/dashboard/members", icon: Users, label: "Usuarios", description: "Miembros y roles" },
       ],
     },
     {
       label: "GASTOS",
       items: [
-        { href: "/dashboard/expenses", icon: Receipt, label: "Gastos" },
-        { href: "/dashboard/types", icon: Tag, label: "Tipos de Gasto" },
+        { href: "/dashboard/expenses", icon: Receipt, label: "Gastos", description: "Registro de gastos" },
+        { href: "/dashboard/types", icon: Tag, label: "Tipos de Gasto", description: "Categorías de gastos" },
       ],
     },
     {
       label: "INGRESOS",
       items: [
-        { href: "/dashboard/incomes", icon: TrendingUp, label: "Ingresos" },
-        { href: "/dashboard/allocations", icon: PieChart, label: "Asignaciones" },
+        { href: "/dashboard/incomes", icon: TrendingUp, label: "Ingresos", description: "Entradas de dinero" },
+        { href: "/dashboard/allocations", icon: PieChart, label: "Asignaciones", description: "Distribución de ingresos" },
       ],
     },
     {
@@ -97,9 +97,9 @@ function buildNavGroups(role: string): NavGroup[] {
     {
       label: "OTROS",
       items: [
-        { href: "/dashboard/funds", icon: Landmark, label: "Fondos" },
+        { href: "/dashboard/funds", icon: Landmark, label: "Fondos", description: "Fuentes de ingreso" },
         ...(role === "superadmin"
-          ? [{ href: "/dashboard/admin", icon: ShieldCheck, label: "Administración" }]
+          ? [{ href: "/dashboard/admin", icon: ShieldCheck, label: "Administración", description: "Panel de superadmin" }]
           : []),
       ],
     },

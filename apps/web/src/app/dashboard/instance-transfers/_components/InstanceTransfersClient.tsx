@@ -7,6 +7,7 @@ import { Button } from "@repo/ui";
 import { AddInstanceTransferModal } from "./AddInstanceTransferModal";
 
 type Source = { id: string; name: string; color: string | null; balanceUsd?: number };
+type Member = { id: string; name: string; balanceUsd: number };
 type OtherHousehold = { id: string; name: string; isMain: boolean; sources: Source[] };
 
 
@@ -31,12 +32,14 @@ export function InstanceTransfersClient({
   currentSources,
   currentHouseholdId,
   currentHouseholdName,
+  currentMembers,
   otherHouseholds,
   rows,
 }: {
   currentSources: Source[];
   currentHouseholdId: string;
   currentHouseholdName: string;
+  currentMembers: Member[];
   otherHouseholds: OtherHousehold[];
   rows: TransferRow[];
 }) {
@@ -69,6 +72,7 @@ export function InstanceTransfersClient({
         </div>
         <AddInstanceTransferModal
           currentSources={currentSources}
+          currentMembers={currentMembers}
           currentHouseholdId={currentHouseholdId}
           currentHouseholdName={currentHouseholdName}
           otherHouseholds={otherHouseholds}
