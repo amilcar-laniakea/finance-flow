@@ -626,11 +626,11 @@ export function ExpensesClient({
                   const pct = summary.grandTotalUsd > 0 ? (total / summary.grandTotalUsd) * 100 : 0;
                   return (
                     <div key={memberId} className="rounded-lg bg-muted/50 p-3">
-                      <div className="mb-1.5 flex items-center justify-between">
-                        <span className="rounded-full bg-blue-100 dark:bg-blue-900/40 px-2 py-px text-xs font-semibold text-blue-700 dark:text-blue-400">
+                      <div className="mb-1.5 flex items-center justify-between gap-1.5">
+                        <span className="min-w-0 flex-1 truncate rounded-full bg-muted px-2 py-px text-xs font-semibold text-foreground">
                           {name}
                         </span>
-                        <span className="text-xs text-muted-foreground">{pct.toFixed(1)}%</span>
+                        <span className="shrink-0 text-xs text-muted-foreground">{pct.toFixed(1)}%</span>
                       </div>
                       <p className="text-base font-bold text-red-600 dark:text-red-400">${total.toFixed(2)}</p>
                       <div className="mt-2 h-1 overflow-hidden rounded-full bg-blue-100 dark:bg-blue-900/40">
@@ -641,9 +641,9 @@ export function ExpensesClient({
                 })}
                 {summary.unassignedTotal > 0.001 && (
                   <div className="rounded-lg bg-muted/50 p-3">
-                    <div className="mb-1.5 flex items-center justify-between">
-                      <span className="text-xs italic text-muted-foreground">Sin asignar</span>
-                      <span className="text-xs text-muted-foreground">
+                    <div className="mb-1.5 flex items-center justify-between gap-1.5">
+                      <span className="min-w-0 flex-1 truncate text-xs italic text-muted-foreground">Sin asignar</span>
+                      <span className="shrink-0 text-xs text-muted-foreground">
                         {summary.grandTotalUsd > 0
                           ? ((summary.unassignedTotal / summary.grandTotalUsd) * 100).toFixed(1)
                           : "0"}%
