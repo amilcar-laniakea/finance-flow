@@ -339,11 +339,12 @@ export default async function DashboardPage() {
                   const tcolor = t.typeColor ?? "#7C3AED";
                   return (
                     <div key={t.typeName}>
-                      <div className="mb-1 flex justify-between">
-                        <span className="rounded-full px-2 py-px text-xs font-semibold" style={{ background: `${tcolor}22`, color: tcolor }}>
-                          {t.typeName}
+                      <div className="mb-1 flex items-center justify-between gap-2">
+                        <span className="flex min-w-0 flex-1 items-center gap-1.5 truncate rounded-full bg-muted px-2 py-px text-xs font-semibold text-foreground">
+                          <span className="size-2 shrink-0 rounded-full" style={{ background: tcolor }} />
+                          <span className="truncate">{t.typeName}</span>
                         </span>
-                        <span className="text-sm font-bold text-red-600">${amt.toFixed(2)}</span>
+                        <span className="shrink-0 text-sm font-bold text-red-600 dark:text-red-400">${amt.toFixed(2)}</span>
                       </div>
                       <div className="h-1.5 overflow-hidden rounded-full bg-muted">
                         <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: tcolor }} />
@@ -468,7 +469,7 @@ function KpiCard({
         <div className="mt-2 flex items-center justify-between">
           {sub && <span className="text-xs text-muted-foreground">{sub}</span>}
           {trend != null && (
-            <span className={`rounded-full px-1.5 py-px text-xs font-semibold ${trendGood ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"}`}>
+            <span className={`rounded-full px-1.5 py-px text-xs font-semibold bg-muted ${trendGood ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
               {trend >= 0 ? "▲" : "▼"} {Math.abs(trend).toFixed(1)}%
             </span>
           )}

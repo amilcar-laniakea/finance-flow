@@ -592,16 +592,17 @@ export function ExpensesClient({
                     const pct = summary.classifiedTotal > 0 ? (total / summary.classifiedTotal) * 100 : 0;
                     return (
                       <div key={typeId}>
-                        <div className="mb-1 flex items-center justify-between">
-                          <span className="rounded-full px-2 py-px text-xs font-semibold" style={{ background: `${tcolor}22`, color: tcolor }}>
-                            {tinfo?.name ?? "?"}
+                        <div className="mb-1 flex items-center justify-between gap-2">
+                          <span className="flex min-w-0 flex-1 items-center gap-1.5 truncate rounded-full bg-muted px-2 py-px text-xs font-semibold text-foreground">
+                            <span className="size-2 shrink-0 rounded-full" style={{ background: tcolor }} />
+                            <span className="truncate">{tinfo?.name ?? "?"}</span>
                           </span>
-                          <span className="flex items-center gap-2">
+                          <span className="flex shrink-0 items-center gap-2">
                             <span className="text-xs text-muted-foreground">{pct.toFixed(1)}%</span>
                             <span className="text-sm font-bold text-red-600 dark:text-red-400">${total.toFixed(2)}</span>
                           </span>
                         </div>
-                        <div className="h-1 overflow-hidden rounded-full" style={{ background: `${tcolor}22` }}>
+                        <div className="h-1 overflow-hidden rounded-full bg-muted">
                           <div className="h-full rounded-full" style={{ width: `${pct}%`, background: tcolor }} />
                         </div>
                       </div>
