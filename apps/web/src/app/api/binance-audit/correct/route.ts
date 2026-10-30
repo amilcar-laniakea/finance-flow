@@ -5,6 +5,9 @@ import { getInstanceContext } from "@/lib/getInstanceContext";
 import { applyBinanceAdjustment } from "@/lib/applyBinanceAdjustment";
 
 export async function POST(req: Request) {
+  if (!process.env.BINANCE_API_KEY || !process.env.BINANCE_API_SECRET) {
+    return NextResponse.json({ error: "Binance no configurado" }, { status: 503 });
+  }
   const ctx = await getInstanceContext();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (ctx.role !== "admin" && ctx.role !== "superadmin") {

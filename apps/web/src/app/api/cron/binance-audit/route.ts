@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { runBinanceAudit } from "@/lib/runBinanceAudit";
 
 export async function GET(req: Request) {
+  if (!process.env.BINANCE_API_KEY || !process.env.BINANCE_API_SECRET) {
+    return NextResponse.json({ ok: true, skipped: true, reason: "Binance not configured" });
+  }
+
   // Vercel sends this header for cron jobs in production
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;

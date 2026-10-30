@@ -5,6 +5,8 @@ import { getInstanceContext } from "@/lib/getInstanceContext";
 import { AuditClient } from "./_components/AuditClient";
 
 export default async function AuditPage() {
+  const binanceEnabled = !!(process.env.BINANCE_API_KEY && process.env.BINANCE_API_SECRET);
+
   const ctx = await getInstanceContext();
   if (!ctx || !ctx.canRead) redirect("/dashboard");
   if (ctx.role !== "admin" && ctx.role !== "superadmin") redirect("/dashboard");
@@ -69,6 +71,7 @@ export default async function AuditPage() {
       corrections={serializedCorrections}
       activeFunds={activeFunds}
       members={members}
+      binanceEnabled={binanceEnabled}
     />
   );
 }

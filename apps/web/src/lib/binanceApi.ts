@@ -45,9 +45,6 @@ export async function getBinanceUsdtBalances(): Promise<{
         cache: "no-store",
       }
     );
-    // BINANCE_FUNDING_OVERRIDE_USDT: manual fallback when the API is unavailable for this account type
-    const fundingOverride = parseFloat(process.env.BINANCE_FUNDING_OVERRIDE_USDT ?? "0");
-
     let funding = 0;
     let fundingNote: string | undefined;
     if (fundRes.ok) {
@@ -59,17 +56,10 @@ export async function getBinanceUsdtBalances(): Promise<{
           parseFloat(fundUsdt?.locked ?? "0") +
           parseFloat(fundUsdt?.freeze ?? "0");
       } else {
-        funding = fundingOverride;
-        fundingNote = fundingOverride > 0 ? `Funding vía override (${fundingOverride} USDT)` : (fundData.msg ?? "Funding wallet no disponible");
+        fundingNote = fundData.msg ?? "Funding wallet no disponible";
       }
     } else {
-      // API blocked for this account — use manual override if set
-      funding = fundingOverride;
-      if (fundingOverride > 0) {
-        fundingNote = `Funding vía override manual (${fundingOverride} USDT)`;
-      } else {
-        fundingNote = `Funding wallet inaccesible vía API — configura BINANCE_FUNDING_OVERRIDE_USDT`;
-      }
+      fundingNote = "Funding wallet inaccesible vía API";
     }
 
     return { spot, funding, fundingNote };

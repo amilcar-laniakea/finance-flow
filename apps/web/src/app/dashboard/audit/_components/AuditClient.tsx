@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { RefreshCw, Scale, ChevronDown, ChevronUp, X } from "lucide-react";
+import { RefreshCw, Scale, ChevronDown, ChevronUp, X, KeyRound } from "lucide-react";
 
 type LiveData = {
   spot: number;
@@ -83,11 +83,13 @@ export function AuditClient({
   corrections: initialCorrections,
   activeFunds,
   members,
+  binanceEnabled,
 }: {
   audits: AuditRow[];
   corrections: CorrectionRow[];
   activeFunds: Fund[];
   members: Member[];
+  binanceEnabled: boolean;
 }) {
   const router = useRouter();
   const [audits, setAudits] = useState(initialAudits);
@@ -212,7 +214,25 @@ export function AuditClient({
   const correctionsByAudit = new Map(corrections.map((c) => [c.auditId, c]));
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-8 w-full min-w-0 overflow-hidden">
+    <div className="relative p-6 max-w-5xl mx-auto space-y-8 w-full min-w-0 overflow-hidden">
+      {/* Overlay — Binance not configured */}
+      {!binanceEnabled && (
+        <div className="absolute inset-0 z-40 flex items-start justify-center pt-24 bg-background/80 backdrop-blur-sm rounded-xl">
+          <div className="flex flex-col items-center gap-4 text-center px-6 py-8 max-w-sm bg-card border border-border rounded-2xl shadow-xl">
+            <div className="flex items-center justify-center w-14 h-14 rounded-full bg-muted">
+              <KeyRound className="text-muted-foreground" size={28} />
+            </div>
+            <div className="space-y-1">
+              <p className="text-base font-semibold text-foreground">Módulo no disponible</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Las variables <code className="font-mono text-xs bg-muted px-1 py-0.5 rounded">BINANCE_API_KEY</code> y{" "}
+                <code className="font-mono text-xs bg-muted px-1 py-0.5 rounded">BINANCE_API_SECRET</code> no están configuradas en este entorno.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Confirmation dialog */}
       {showConfirm && live && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
