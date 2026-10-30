@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ArrowLeftRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 type Source = { id: string; name: string; color: string | null; balance: number };
@@ -62,9 +63,10 @@ export function AddTransferModal({ sources, members }: { sources: Source[]; memb
     <>
       <button
         onClick={() => setOpen(true)}
-        className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-md text-sm font-semibold cursor-pointer border-none transition-colors"
+        className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-semibold cursor-pointer border-none transition-colors"
       >
-        + Nueva transferencia
+        <ArrowLeftRight size={15} />
+        Transferir
       </button>
 
       {open && (

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
-import { Search, X, ArrowLeftRight, Users, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import { Search, X, ArrowLeftRight, Users, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronDown } from "lucide-react";
 import { AddTransferModal } from "./AddTransferModal";
 import { DeleteTransferButton } from "./DeleteTransferButton";
 
@@ -212,14 +212,17 @@ function TransferTable({
         <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-t border-border text-[13px] text-muted-foreground">
           <div className="flex items-center gap-2">
             <span className="text-[12px]">Filas por página</span>
-            <select
-              value={perPage === "all" ? "all" : String(perPage)}
-              onChange={(e) => { setPerPage(e.target.value === "all" ? "all" : Number(e.target.value)); setPage(1); }}
-              className="h-7 px-1.5 rounded border border-border bg-background text-foreground text-[12px] outline-none cursor-pointer"
-            >
-              {PER_PAGE_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
-              <option value="all">Todos</option>
-            </select>
+            <div className="relative">
+              <select
+                value={perPage === "all" ? "all" : String(perPage)}
+                onChange={(e) => { setPerPage(e.target.value === "all" ? "all" : Number(e.target.value)); setPage(1); }}
+                className="h-7 appearance-none pl-2 pr-7 rounded border border-border bg-background text-foreground text-[12px] outline-none cursor-pointer"
+              >
+                {PER_PAGE_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
+                <option value="all">Todos</option>
+              </select>
+              <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            </div>
           </div>
           <div className="flex items-center gap-1">
             <span className="text-[12px] mr-1">{safePage} / {totalPages}</span>

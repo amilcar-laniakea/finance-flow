@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
-import { Search, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, List, BarChart2 } from "lucide-react";
+import { Search, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronDown, List, BarChart2 } from "lucide-react";
 import { AddExpenseModal } from "./AddExpenseModal";
 import { EditExpenseModal } from "./EditExpenseModal";
 import { DeleteExpenseButton } from "./DeleteExpenseButton";
@@ -232,7 +232,8 @@ export function ExpensesClient({
       {activeTab === "list" && <>
 
       {/* Filter bar */}
-      <div className="flex flex-wrap gap-2 items-center">
+      <div className="px-4 pt-5 pb-3 border-b border-border">
+      <div className="flex flex-wrap gap-x-2 gap-y-5 items-center">
         <div className="relative flex-1 min-w-[180px]">
           <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
           <input
@@ -293,6 +294,7 @@ export function ExpensesClient({
             <X size={12} /> Limpiar
           </button>
         )}
+      </div>
       </div>
 
       {/* Table / Card list */}
@@ -492,16 +494,19 @@ export function ExpensesClient({
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Filas por página</span>
-                <select
-                  value={perPage}
-                  onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
-                  className="h-8 rounded-md border border-border bg-background text-foreground text-xs px-2 outline-none cursor-pointer"
-                >
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                  <option value={0}>Todos</option>
-                </select>
+                <div className="relative">
+                  <select
+                    value={perPage}
+                    onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
+                    className="h-8 appearance-none rounded-md border border-border bg-background text-foreground text-xs pl-2 pr-7 outline-none cursor-pointer"
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                    <option value={0}>Todos</option>
+                  </select>
+                  <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                </div>
               </div>
 
               <div className="flex items-center gap-3">

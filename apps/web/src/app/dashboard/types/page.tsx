@@ -31,7 +31,7 @@ export default async function TypesPage() {
         <AddTypeModal />
       </div>
 
-      <div className="bg-card border border-border rounded-lg overflow-hidden">
+      <div className="bg-card border border-border rounded-lg">
         {types.length === 0 ? (
           <p className="px-8 py-12 text-muted-foreground text-center">
             No hay tipos de gasto creados aún. Crea el primero para clasificar tus gastos.
@@ -40,28 +40,30 @@ export default async function TypesPage() {
           types.map((t, idx) => (
             <div
               key={t.id}
-              className={`flex items-center justify-between px-5 py-3.5 ${idx < types.length - 1 ? "border-b border-border/60" : ""}`}
+              className={`flex items-center justify-between gap-3 px-5 py-3.5 ${idx < types.length - 1 ? "border-b border-border/60" : ""}`}
             >
-              <div className="flex items-center gap-3">
+              {/* Dot + name + badge + usage */}
+              <div className="flex items-center gap-3 min-w-0">
                 <div
                   className="size-3 rounded-full shrink-0"
                   style={{ background: t.color ?? "#7C3AED" }}
                 />
-                <div>
-                  <p className="font-semibold text-sm text-foreground">{t.name}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                <div className="min-w-0">
+                  <p className="font-semibold text-sm text-foreground truncate">{t.name}</p>
+                  <div className="mt-1">
+                    <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-muted font-medium" style={{ color: t.color ?? "#7C3AED" }}>
+                      <span className="size-1.5 rounded-full shrink-0" style={{ background: t.color ?? "#7C3AED" }} />
+                      {t.name}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
                     Usado en {usageMap[t.id] ?? 0} gasto{(usageMap[t.id] ?? 0) !== 1 ? "s" : ""}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <span
-                  className="text-xs px-2.5 py-0.5 rounded-full font-semibold"
-                  style={{ background: `${t.color ?? "#7C3AED"}22`, color: t.color ?? "#7C3AED" }}
-                >
-                  {t.name}
-                </span>
+              {/* Action icons only */}
+              <div className="flex items-center gap-0.5 shrink-0">
                 <EditTypeModal type={{ id: t.id, name: t.name, color: t.color }} />
                 <DeleteTypeButton id={t.id} name={t.name} />
               </div>

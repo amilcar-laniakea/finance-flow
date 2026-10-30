@@ -466,14 +466,14 @@ function KpiCard({
       <CardContent className="pt-4">
         <p className="mb-2 text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
         <p className={`text-xl font-bold ${colorClass}`}>{value}</p>
-        <div className="mt-2 flex items-center justify-between">
-          {sub && <span className="text-xs text-muted-foreground">{sub}</span>}
-          {trend != null && (
-            <span className={`rounded-full px-1.5 py-px text-xs font-semibold bg-muted ${trendGood ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+        {sub && <p className="mt-1 text-xs text-muted-foreground">{sub}</p>}
+        {trend != null && (
+          <div className="mt-2">
+            <span className={`inline-flex items-center gap-0.5 whitespace-nowrap rounded-full bg-muted px-2.5 py-1 text-xs font-semibold ${trendGood ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
               {trend >= 0 ? "▲" : "▼"} {Math.abs(trend).toFixed(1)}%
             </span>
-          )}
-        </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
