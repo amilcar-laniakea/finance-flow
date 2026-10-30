@@ -101,14 +101,12 @@ export default async function ExpensesPage() {
 
   const splitsByExpense: Record<string, { incomeSourceId: string; amountUsd: string }[]> = {};
   for (const s of allSplits) {
-    if (!splitsByExpense[s.expenseId]) splitsByExpense[s.expenseId] = [];
-    splitsByExpense[s.expenseId].push({ incomeSourceId: s.incomeSourceId, amountUsd: s.amountUsd });
+    (splitsByExpense[s.expenseId] ??= []).push({ incomeSourceId: s.incomeSourceId, amountUsd: s.amountUsd });
   }
 
   const typeAmountsByExpense: Record<string, { expenseTypeId: string; amount: string }[]> = {};
   for (const ta of allTypeAmounts) {
-    if (!typeAmountsByExpense[ta.expenseId]) typeAmountsByExpense[ta.expenseId] = [];
-    typeAmountsByExpense[ta.expenseId].push({ expenseTypeId: ta.expenseTypeId, amount: ta.amount });
+    (typeAmountsByExpense[ta.expenseId] ??= []).push({ expenseTypeId: ta.expenseTypeId, amount: ta.amount });
   }
 
   // Serialize Date fields for client component
