@@ -1,5 +1,5 @@
 import { db, fundTransfers, incomeSources, users, incomes, expenses, expenseSourceSplits, incomeDistributions } from "@repo/db";
-import { eq, isNull, sql, and, desc, or } from "drizzle-orm";
+import { eq, isNull, ne, sql, and, desc, or } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getInstanceContext } from "@/lib/getInstanceContext";
 import { TransfersClient } from "./_components/TransfersClient";
@@ -31,7 +31,11 @@ export default async function TransfersPage() {
     db.select({ id: incomeSources.id, name: incomeSources.name, color: incomeSources.color })
       .from(incomeSources).where(and(eq(incomeSources.isActive, true), eq(incomeSources.householdId, hid))).orderBy(incomeSources.name),
     db.select({ id: users.id, name: users.fullName }).from(users)
-      .where(ctx.activeHousehold.isPersonal ? eq(users.personalHouseholdId, hid) : undefined)
+      .where(and(
+        isNull(users.deletedAt),
+        ne(users.role, "superadmin"),
+        ctx.activeHousehold.isPersonal ? eq(users.personalHouseholdId, hid) : undefined,
+      ))
       .orderBy(users.fullName),
   ]);
 

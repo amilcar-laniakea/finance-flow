@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
   Button, Input, Label,
@@ -15,10 +16,12 @@ type SplitRow = { incomeSourceId: string; amountUsd: string };
 type TypeRow = { expenseTypeId: string; amount: string };
 
 export function AddExpenseModal({
+  householdId,
   members,
   sources,
   expenseTypes,
 }: {
+  householdId: string;
   members: Member[];
   sources: Source[];
   expenseTypes: ExpenseType[];
@@ -55,8 +58,7 @@ export function AddExpenseModal({
     const src = sourceMap[s.incomeSourceId];
     return src && parseFloat(s.amountUsd) > src.balance + 0.001;
   });
-  const hasAtLeastOneSource = splits.some((s) => s.incomeSourceId !== "");
-  const canSubmit = !loading && !!memberId && hasAtLeastOneSource && !splitsTotalMismatch && splitOverdraftIdx === -1;
+  const canSubmit = !loading && !!memberId && !splitsTotalMismatch && splitOverdraftIdx === -1;
 
   function availableSourcesFor(idx: number) {
     const selectedIds = new Set(splits.filter((_, i) => i !== idx).map((s) => s.incomeSourceId));
@@ -89,6 +91,7 @@ export function AddExpenseModal({
     const validTypeAmounts = typeRows.filter((t) => t.expenseTypeId && parseFloat(t.amount) > 0);
 
     const body: Record<string, unknown> = {
+      householdId,
       description: fd.get("description") as string,
       merchant: (fd.get("merchant") as string) || undefined,
       memberId,
@@ -105,9 +108,12 @@ export function AddExpenseModal({
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({})) as { error?: string };
-      setError(data.error ?? "Error al guardar el gasto. Intenta de nuevo.");
+      const msg = data.error ?? "Error al guardar el gasto. Intenta de nuevo.";
+      setError(msg);
+      toast.error(msg);
       return;
     }
+    toast.success("Gasto registrado correctamente");
     handleClose();
     router.refresh();
   }
@@ -179,11 +185,11 @@ export function AddExpenseModal({
                 const avail = availableExpenseTypesFor(idx);
                 const selected = expenseTypes.find((t) => t.id === row.expenseTypeId);
                 return (
-                  <div key={idx} className="mb-2 flex items-center gap-2">
+                  <div key={idx} className="mb-2 flex items-center gap-2 min-w-0">
                     <select
                       value={row.expenseTypeId}
                       onChange={(e) => updateTypeRow(idx, "expenseTypeId", e.target.value)}
-                      className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                      className="flex-1 min-w-0 rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
                     >
                       <option value="">— Seleccionar tipo —</option>
                       {avail.map((t) => (
@@ -259,11 +265,11 @@ export function AddExpenseModal({
                 const avail = availableSourcesFor(idx);
                 return (
                   <div key={idx} className="mb-2.5">
-                    <div className="flex items-center gap-2">
+                    <div className="grid grid-cols-[1fr_6rem_auto] items-center gap-2">
                       <select
                         value={row.incomeSourceId}
                         onChange={(e) => updateSplitRow(idx, "incomeSourceId", e.target.value)}
-                        className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                        className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
                       >
                         <option value="">— Seleccionar fondo —</option>
                         {avail.map((s) => <option key={s.id} value={s.id}>{s.name} (disp. ${s.balance.toFixed(2)})</option>)}

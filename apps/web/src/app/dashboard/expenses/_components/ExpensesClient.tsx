@@ -1,6 +1,18 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
+
+function formatTimeVE(iso: string): string {
+  const d = new Date(iso);
+  // Venezuela is UTC-4 (no DST)
+  const ve = new Date(d.getTime() - 4 * 60 * 60 * 1000);
+  const h = ve.getUTCHours();
+  const m = String(ve.getUTCMinutes()).padStart(2, "0");
+  const s = String(ve.getUTCSeconds()).padStart(2, "0");
+  const ampm = h >= 12 ? "p. m." : "a. m.";
+  const h12 = String(h % 12 || 12).padStart(2, "0");
+  return `${h12}:${m}:${s} ${ampm}`;
+}
 import { Search, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronDown, List, BarChart2 } from "lucide-react";
 import { AddExpenseModal } from "./AddExpenseModal";
 import { EditExpenseModal } from "./EditExpenseModal";
@@ -26,6 +38,7 @@ type Split = { incomeSourceId: string; amountUsd: string };
 type TypeAmount = { expenseTypeId: string; amount: string };
 
 interface Props {
+  householdId: string;
   rows: ExpenseRow[];
   members: Member[];
   sources: Source[];
@@ -35,6 +48,7 @@ interface Props {
 }
 
 export function ExpensesClient({
+  householdId,
   rows,
   members,
   sources,
@@ -215,7 +229,7 @@ export function ExpensesClient({
               : `${rows.length} registros`}
           </p>
         </div>
-        <AddExpenseModal members={members} sources={sources} expenseTypes={expenseTypes} />
+        <AddExpenseModal householdId={householdId} members={members} sources={sources} expenseTypes={expenseTypes} />
       </div>
 
       {/* Sub-section tabs */}
@@ -349,6 +363,9 @@ export function ExpensesClient({
                           )}
                           <span className="text-xs text-muted-foreground">
                             {e.occurredAt ? new Date(e.occurredAt).toLocaleDateString("es-VE") : "—"}
+                            {e.occurredAt && (
+                              <span className="ml-1 tabular-nums">{formatTimeVE(e.occurredAt)}</span>
+                            )}
                           </span>
                         </div>
                       </div>
@@ -399,7 +416,7 @@ export function ExpensesClient({
 
               {/* Actual table */}
               <div ref={tableScrollRef} onScroll={syncTopFromBottom} className="overflow-x-auto">
-                <table className="w-full border-collapse text-sm min-w-[720px]">
+                <table className="w-full border-collapse text-sm min-w-[820px]">
                   <thead>
                     <tr className="border-b border-border bg-muted/50 text-muted-foreground text-xs">
                       <th className="text-left px-4 py-3 font-semibold uppercase tracking-wide">Descripción</th>
@@ -409,6 +426,7 @@ export function ExpensesClient({
                       <th className="text-right px-4 py-3 font-semibold uppercase tracking-wide">USD</th>
                       <th className="text-right px-4 py-3 font-semibold uppercase tracking-wide">Bs</th>
                       <th className="text-right px-4 py-3 font-semibold uppercase tracking-wide">Fecha</th>
+                      <th className="text-right px-4 py-3 font-semibold uppercase tracking-wide">Hora</th>
                       <th className="w-20 px-2 py-3" />
                     </tr>
                   </thead>
@@ -462,6 +480,9 @@ export function ExpensesClient({
                           </td>
                           <td className="px-4 py-3 text-right text-muted-foreground text-[13px]">
                             {e.occurredAt ? new Date(e.occurredAt).toLocaleDateString("es-VE") : "—"}
+                          </td>
+                          <td className="px-4 py-3 text-right text-muted-foreground text-[13px] tabular-nums">
+                            {e.occurredAt ? formatTimeVE(e.occurredAt) : "—"}
                           </td>
                           <td className="px-2 py-3">
                             <div className="flex items-center justify-center gap-0.5">

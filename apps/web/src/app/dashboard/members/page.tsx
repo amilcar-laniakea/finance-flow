@@ -1,5 +1,5 @@
 import { db, users, incomeDistributions, expenses, incomes, incomeSources, fundTransfers } from "@repo/db";
-import { eq, isNull, sql, and, or, inArray, desc } from "drizzle-orm";
+import { eq, isNull, ne, sql, and, or, inArray, desc } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getInstanceContext } from "@/lib/getInstanceContext";
 import { MembersClient } from "./_components/MembersClient";
@@ -15,7 +15,11 @@ export default async function MembersPage() {
   const rows = await db
     .select({ id: users.id, email: users.email, fullName: users.fullName, role: users.role, clerkId: users.clerkId })
     .from(users)
-    .where(ctx.activeHousehold.isPersonal ? eq(users.personalHouseholdId, hid) : undefined)
+    .where(and(
+      isNull(users.deletedAt),
+      ne(users.role, "superadmin"),
+      ctx.activeHousehold.isPersonal ? eq(users.personalHouseholdId, hid) : undefined,
+    ))
     .orderBy(users.createdAt);
 
   const userIds = rows.map((r) => r.id);

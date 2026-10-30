@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
   Button, Input, Label,
@@ -94,9 +95,12 @@ export function EditExpenseModal({
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({})) as { error?: string };
-      setError(data.error ?? "Error al guardar los cambios.");
+      const msg = data.error ?? "Error al guardar los cambios.";
+      setError(msg);
+      toast.error(msg);
       return;
     }
+    toast.success("Gasto actualizado correctamente");
     setOpen(false);
     router.refresh();
   }
@@ -169,11 +173,11 @@ export function EditExpenseModal({
                 const avail = availableExpenseTypesFor(idx);
                 const selected = expenseTypes.find((t) => t.id === row.expenseTypeId);
                 return (
-                  <div key={idx} className="mb-2 flex items-center gap-2">
+                  <div key={idx} className="mb-2 flex items-center gap-2 min-w-0">
                     <select
                       value={row.expenseTypeId}
                       onChange={(e) => updateTypeRow(idx, "expenseTypeId", e.target.value)}
-                      className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                      className="flex-1 min-w-0 rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
                     >
                       <option value="">— Seleccionar tipo —</option>
                       {avail.map((t) => (

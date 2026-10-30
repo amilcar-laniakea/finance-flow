@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, isNull } from "drizzle-orm";
 import { getInstanceContext } from "@/lib/getInstanceContext";
 import { db, users, households, incomeSources } from "@repo/db";
 import { AdminPageClient } from "./_components/AdminPageClient";
@@ -16,7 +16,7 @@ export default async function AdminPage() {
       role: users.role,
       personalHouseholdId: users.personalHouseholdId,
       clerkId: users.clerkId,
-    }).from(users).orderBy(asc(users.email)),
+    }).from(users).where(isNull(users.deletedAt)).orderBy(asc(users.email)),
     db.select({
       id: households.id,
       name: households.name,

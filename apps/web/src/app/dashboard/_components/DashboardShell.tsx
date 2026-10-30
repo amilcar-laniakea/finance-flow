@@ -1,6 +1,6 @@
 "use client";
 
-import { SidebarProvider, SidebarInset } from "@repo/ui";
+import { SidebarProvider, SidebarInset, Toaster } from "@repo/ui";
 import { AppSidebar } from "./AppSidebar";
 import { DashbardTopbar } from "@/modules/dashboard/ui/components/dashboard-topbar";
 import type { SerializedInstanceContext } from "@/lib/getInstanceContext";
@@ -28,6 +28,8 @@ export function DashboardShell({
         <DashbardTopbar user={user} />
         <div className="flex flex-1 flex-col gap-4 p-4 bg-background min-w-0">{children}</div>
       </SidebarInset>
+
+      <Toaster position="bottom-right" richColors />
     </SidebarProvider>
   );
 }

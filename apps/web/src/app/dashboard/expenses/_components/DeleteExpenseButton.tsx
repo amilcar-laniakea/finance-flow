@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -16,7 +17,12 @@ export function DeleteExpenseButton({ id, label }: { id: string; label: string }
     setLoading(true);
     const res = await fetch(`/api/expenses/${id}`, { method: "DELETE" });
     setLoading(false);
-    if (res.ok) router.refresh();
+    if (res.ok) {
+      toast.success("Gasto eliminado");
+      router.refresh();
+    } else {
+      toast.error("Error al eliminar el gasto");
+    }
   }
 
   return (

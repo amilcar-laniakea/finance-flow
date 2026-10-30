@@ -8,7 +8,7 @@ import {
   expenseTypeAmounts,
   expenseTypes,
 } from "@repo/db";
-import { isNull, desc, eq, and, sql, inArray, or } from "drizzle-orm";
+import { isNull, desc, eq, and, ne, sql, inArray, or } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getInstanceContext } from "@/lib/getInstanceContext";
 import { ExpensesClient } from "./_components/ExpensesClient";
@@ -29,7 +29,11 @@ export default async function ExpensesPage() {
     db
       .select({ id: users.id, nickname: users.fullName })
       .from(users)
-      .where(ctx.activeHousehold.isPersonal ? eq(users.personalHouseholdId, hid) : undefined)
+      .where(and(
+        isNull(users.deletedAt),
+        ne(users.role, "superadmin"),
+        ctx.activeHousehold.isPersonal ? eq(users.personalHouseholdId, hid) : undefined,
+      ))
       .orderBy(users.fullName),
     db
       .select({
@@ -135,6 +139,7 @@ export default async function ExpensesPage() {
 
   return (
     <ExpensesClient
+      householdId={hid}
       rows={serializedRows}
       members={members}
       sources={sources}

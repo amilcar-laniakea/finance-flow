@@ -43,6 +43,7 @@ import {
   Building2,
   Check,
   ShieldCheck,
+  Scale,
 } from "lucide-react"
 import { setActiveInstance } from "@/lib/actions/setActiveInstance"
 import type { SerializedInstanceContext } from "@/lib/getInstanceContext"
@@ -60,7 +61,7 @@ type NavGroup = {
   items: NavItem[]
 }
 
-function buildNavGroups(role: string): NavGroup[] {
+function buildNavGroups(role: string, isMain: boolean): NavGroup[] {
   const isAdminPlus = role === "admin" || role === "superadmin"
 
   return [
@@ -103,6 +104,14 @@ function buildNavGroups(role: string): NavGroup[] {
           : []),
       ],
     },
+    ...(isAdminPlus && isMain
+      ? [{
+          label: "AUDITORÍA",
+          items: [
+            { href: "/dashboard/audit", icon: Scale, label: "Saldo Binance", description: "Verificación vs Binance" },
+          ],
+        }]
+      : []),
   ]
 }
 
@@ -136,7 +145,7 @@ export function AppSidebar({ user, instanceCtx }: AppSidebarProps) {
       .slice(0, 2)
       .join("") || "?"
 
-  const navGroups = buildNavGroups(instanceCtx.role)
+  const navGroups = buildNavGroups(instanceCtx.role, instanceCtx.isMainInstance)
   const hasMultipleInstances = instanceCtx.availableInstances.length > 1
   const instanceLabel = instanceCtx.isMainInstance ? "Principal" : instanceCtx.activeHouseholdName
 

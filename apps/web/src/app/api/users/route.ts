@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { db, users } from "@repo/db";
-import { eq } from "drizzle-orm";
+import { eq, isNull } from "drizzle-orm";
 
 export async function GET() {
   const { userId } = await auth();
@@ -19,6 +19,7 @@ export async function GET() {
       createdAt: users.createdAt,
     })
     .from(users)
+    .where(isNull(users.deletedAt))
     .orderBy(users.createdAt);
 
   return NextResponse.json(rows);

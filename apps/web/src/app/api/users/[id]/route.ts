@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { db, users } from "@repo/db";
-import { eq } from "drizzle-orm";
+import { eq, isNull } from "drizzle-orm";
 
 export async function PUT(
   request: NextRequest,
@@ -56,6 +56,11 @@ export async function DELETE(
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  await db.delete(users).where(eq(users.id, id));
+  const [updated] = await db
+    .update(users)
+    .set({ deletedAt: new Date() })
+    .where(eq(users.id, id))
+    .returning({ id: users.id });
+  if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ success: true });
 }
