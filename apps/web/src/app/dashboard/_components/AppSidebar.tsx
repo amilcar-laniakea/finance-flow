@@ -195,7 +195,7 @@ export function AppSidebar({ user, instanceCtx }: AppSidebarProps) {
                     <ChevronsUpDown className="ml-auto size-3.5 shrink-0 opacity-60" />
                   </SidebarMenuButton>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent side="right" align="start" className="min-w-52">
+                <DropdownMenuContent side="bottom" align="start" className="min-w-52 w-[--radix-dropdown-menu-trigger-width]">
                   <DropdownMenuLabel className="text-xs text-muted-foreground">
                     Instancias disponibles
                   </DropdownMenuLabel>

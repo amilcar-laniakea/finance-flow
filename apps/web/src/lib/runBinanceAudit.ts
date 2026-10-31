@@ -69,9 +69,9 @@ export async function runBinanceAudit(triggeredBy: "cron" | "manual"): Promise<{
     return { auditId: "", status, discrepancyUsd, error: "Error al guardar auditoría" };
   }
 
-  // Auto-correct for green/yellow
+  // Auto-correct for green/yellow only when discrepancy >= 1 cent
   let autoCorrectApplied = false;
-  if (status === "green" || status === "yellow") {
+  if ((status === "green" || status === "yellow") && Math.abs(discrepancyUsd) >= 0.01) {
     const [defaultFund] = await db
       .select({ id: incomeSources.id, name: incomeSources.name })
       .from(incomeSources)

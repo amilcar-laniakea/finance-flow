@@ -93,9 +93,9 @@ function TypeList({
           className={`flex items-center justify-between gap-3 px-5 py-3.5 ${idx < types.length - 1 ? "border-b border-border/60" : ""}`}
         >
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="size-3 rounded-full shrink-0" style={{ background: t.color ?? "#7C3AED" }} />
+            <div className="hidden md:block size-3 rounded-full shrink-0" style={{ background: t.color ?? "#7C3AED" }} />
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0">
-              <p className="font-semibold text-sm text-foreground whitespace-nowrap">{t.name}</p>
+              <p className="hidden md:block font-semibold text-sm text-foreground whitespace-nowrap">{t.name}</p>
               <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-muted font-medium whitespace-nowrap" style={{ color: t.color ?? "#7C3AED" }}>
                 <span className="size-1.5 rounded-full shrink-0" style={{ background: t.color ?? "#7C3AED" }} />
                 {t.name}

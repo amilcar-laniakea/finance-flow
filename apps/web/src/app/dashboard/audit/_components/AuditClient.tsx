@@ -72,14 +72,16 @@ function StatusBadgeCompact({ status }: { status: string }) {
 }
 
 function statusConfirmText(status: string, discrepancy: number): string {
-  const abs = Math.abs(discrepancy).toFixed(2);
+  const abs = Math.abs(discrepancy);
+  const absStr = abs.toFixed(2);
   if (status === "green") {
-    if (discrepancy < 0) return `Binance tiene $${abs} más que la app — saldo a favor. Se registrará la auditoría sin corrección.`;
-    return `Diferencia mínima de $${abs} (< $3). Se registrará la auditoría sin corrección.`;
+    if (abs < 0.01) return "No hay diferencias significativas entre Binance y la app.";
+    if (discrepancy < 0) return `Binance tiene $${absStr} más que la app — saldo a favor. Se registrará la auditoría sin corrección.`;
+    return `Diferencia mínima de $${absStr} (< $3). Se registrará la auditoría y se aplicará corrección automática.`;
   }
-  if (status === "yellow") return `Discrepancia leve de $${abs} ($3–$4.99). Se registrará la auditoría y se aplicará una corrección automática en WITI-CENCOSUD para amilcar.laniakea@gmail.com.`;
-  if (status === "orange") return `Discrepancia moderada de $${abs} ($5–$19.99). Se registrará la auditoría. Configura la corrección abajo antes de sincronizar.`;
-  return `Discrepancia crítica de $${abs} (≥ $20). Se registrará la auditoría. Configura la corrección abajo antes de sincronizar.`;
+  if (status === "yellow") return `Discrepancia leve de $${absStr} ($3–$4.99). Se registrará la auditoría y se aplicará una corrección automática en WITI-CENCOSUD para amilcar.laniakea@gmail.com.`;
+  if (status === "orange") return `Discrepancia moderada de $${absStr} ($5–$19.99). Se registrará la auditoría. Configura la corrección abajo antes de sincronizar.`;
+  return `Discrepancia crítica de $${absStr} (≥ $20). Se registrará la auditoría. Configura la corrección abajo antes de sincronizar.`;
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -228,7 +230,7 @@ export function AuditClient({
   const correctionsByAudit = new Map(corrections.map((c) => [c.auditId, c]));
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-8 w-full min-w-0 overflow-hidden">
+    <div className="max-w-5xl mx-auto space-y-6 w-full min-w-0 overflow-hidden">
       {/* Confirmation dialog */}
       {showConfirm && live && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -327,7 +329,7 @@ export function AuditClient({
               </button>
               <button
                 onClick={handleSyncConfirmed}
-                disabled={runLoading}
+                disabled={runLoading || (live !== null && Math.abs(live.discrepancy) < 0.01)}
                 className="flex-1 px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-50 cursor-pointer border-none transition-colors"
               >
                 {runLoading ? "Sincronizando…" : "Sincronizar"}
@@ -375,15 +377,15 @@ export function AuditClient({
 
         {live && !live.error && (
           <>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-2">
               {[
                 { label: "Spot", value: live.spot },
                 { label: "Funding", value: live.funding },
                 { label: "Total", value: live.total, bold: true },
               ].map(({ label, value, bold }) => (
-                <div key={label} className="rounded-lg bg-muted/50 p-3 text-center">
-                  <p className="text-xs text-muted-foreground mb-1">{label}</p>
-                  <p className={`text-lg ${bold ? "font-bold text-foreground" : "font-semibold text-muted-foreground"}`}>
+                <div key={label} className="rounded-lg bg-muted/50 p-2 sm:p-3 text-center">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mb-0.5 sm:mb-1">{label}</p>
+                  <p className={`text-sm sm:text-lg truncate ${bold ? "font-bold text-foreground" : "font-semibold text-muted-foreground"}`}>
                     ${(value ?? 0).toFixed(2)}
                   </p>
                 </div>
@@ -396,7 +398,7 @@ export function AuditClient({
               </p>
             )}
 
-            <p className="text-[11px] text-muted-foreground">
+            <p suppressHydrationWarning className="text-[11px] text-muted-foreground">
               Actualizado: {new Date(live.fetchedAt).toLocaleString("es-VE")}
             </p>
 
@@ -418,23 +420,23 @@ export function AuditClient({
                   <span className="text-xs text-muted-foreground">resultado del análisis</span>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  <div className="rounded-lg bg-background/60 p-3">
-                    <p className="text-[11px] text-muted-foreground mb-0.5">Binance</p>
-                    <p className="text-base font-bold text-foreground">${live.total.toFixed(2)}</p>
-                    <p className="text-[10px] text-muted-foreground">Spot + Funding</p>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="rounded-lg bg-background/60 p-2 sm:p-3">
+                    <p className="text-[10px] sm:text-[11px] text-muted-foreground mb-0.5">Binance</p>
+                    <p className="text-sm sm:text-base font-bold text-foreground truncate">${live.total.toFixed(2)}</p>
+                    <p className="text-[10px] text-muted-foreground hidden sm:block">Spot + Funding</p>
                   </div>
-                  <div className="rounded-lg bg-background/60 p-3">
-                    <p className="text-[11px] text-muted-foreground mb-0.5">App</p>
-                    <p className="text-base font-bold text-foreground">${live.appTotal.toFixed(2)}</p>
-                    <p className="text-[10px] text-muted-foreground">Suma de fondos</p>
+                  <div className="rounded-lg bg-background/60 p-2 sm:p-3">
+                    <p className="text-[10px] sm:text-[11px] text-muted-foreground mb-0.5">App</p>
+                    <p className="text-sm sm:text-base font-bold text-foreground truncate">${live.appTotal.toFixed(2)}</p>
+                    <p className="text-[10px] text-muted-foreground hidden sm:block">Suma de fondos</p>
                   </div>
-                  <div className="rounded-lg bg-background/60 p-3">
-                    <p className="text-[11px] text-muted-foreground mb-0.5">Diferencia</p>
-                    <p className={`text-base font-bold ${Math.abs(live.discrepancy) < 1 ? "text-green-600 dark:text-green-400" : live.discrepancy > 0 ? "text-red-600 dark:text-red-400" : "text-blue-600 dark:text-blue-400"}`}>
+                  <div className="rounded-lg bg-background/60 p-2 sm:p-3">
+                    <p className="text-[10px] sm:text-[11px] text-muted-foreground mb-0.5">Diferencia</p>
+                    <p className={`text-sm sm:text-base font-bold truncate ${Math.abs(live.discrepancy) < 1 ? "text-green-600 dark:text-green-400" : live.discrepancy > 0 ? "text-red-600 dark:text-red-400" : "text-blue-600 dark:text-blue-400"}`}>
                       {live.discrepancy >= 0 ? "+" : ""}${live.discrepancy.toFixed(2)}
                     </p>
-                    <p className="text-[10px] text-muted-foreground">App − Binance</p>
+                    <p className="text-[10px] text-muted-foreground hidden sm:block">App − Binance</p>
                   </div>
                 </div>
 
@@ -446,7 +448,7 @@ export function AuditClient({
 
                 <button
                   onClick={openConfirm}
-                  disabled={runLoading}
+                  disabled={runLoading || Math.abs(live.discrepancy) < 0.01}
                   className="flex items-center gap-2 px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-50 cursor-pointer border-none transition-colors"
                 >
                   <RefreshCw size={14} className={runLoading ? "animate-spin" : ""} />
@@ -466,7 +468,90 @@ export function AuditClient({
           <p className="text-sm text-muted-foreground">Sin auditorías registradas.</p>
         ) : (
           <div className="rounded-xl border border-border overflow-hidden">
-            <div className="overflow-x-auto">
+            {/* Mobile cards */}
+            <div className="block md:hidden divide-y divide-border/60">
+              {audits.map((a) => {
+                const corr = correctionsByAudit.get(a.id);
+                const disc = parseFloat(a.discrepancyUsd);
+                const isCorrectingThis = correctingId === a.id;
+                return (
+                  <div key={a.id} className="p-4 space-y-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span suppressHydrationWarning className="text-[11px] text-muted-foreground">{a.createdAt ? new Date(a.createdAt).toLocaleString("es-VE") : "—"}</span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <StatusBadgeCompact status={a.status} />
+                        <span className="text-[10px] text-muted-foreground capitalize">{a.triggeredBy}</span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="rounded-lg bg-muted/50 p-2 text-center">
+                        <p className="text-[10px] text-muted-foreground mb-0.5">Binance</p>
+                        <p className="text-sm font-semibold text-foreground truncate">${parseFloat(a.binanceTotalUsdt).toFixed(2)}</p>
+                      </div>
+                      <div className="rounded-lg bg-muted/50 p-2 text-center">
+                        <p className="text-[10px] text-muted-foreground mb-0.5">App</p>
+                        <p className="text-sm font-semibold text-foreground truncate">${parseFloat(a.appTotalUsdt).toFixed(2)}</p>
+                      </div>
+                      <div className="rounded-lg bg-muted/50 p-2 text-center">
+                        <p className="text-[10px] text-muted-foreground mb-0.5">Diferencia</p>
+                        <p className={`text-sm font-bold truncate ${disc > 0 ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"}`}>
+                          {disc >= 0 ? "+" : ""}${disc.toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                    {corr ? (
+                      <p className="text-xs text-green-600 dark:text-green-400">
+                        ✓ Corrección{corr.isAutomatic === "true" ? " automática" : " manual"}: {corr.fundName} · {corr.memberName} · ${parseFloat(corr.adjustmentUsd).toFixed(2)}
+                      </p>
+                    ) : (
+                      <button
+                        onClick={() => isCorrectingThis ? setCorrectingId(null) : openCorrect(a)}
+                        className="text-[11px] px-2 py-1 rounded border border-border bg-background hover:bg-muted text-foreground cursor-pointer transition-colors flex items-center gap-0.5"
+                      >
+                        {isCorrectingThis ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                        Corregir
+                      </button>
+                    )}
+                    {isCorrectingThis && !corr && (
+                      <div className="border border-border rounded-lg p-3 space-y-2.5 bg-muted/20">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-xs font-medium text-foreground">Fondo</label>
+                          <select value={correctForm.fundId} onChange={(e) => setCorrectForm((f) => ({ ...f, fundId: e.target.value }))} className="h-8 px-2 rounded border border-border bg-background text-[13px] text-foreground w-full">
+                            {activeFunds.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+                          </select>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-xs font-medium text-foreground">Miembro</label>
+                          <select value={correctForm.memberId} onChange={(e) => setCorrectForm((f) => ({ ...f, memberId: e.target.value }))} className="h-8 px-2 rounded border border-border bg-background text-[13px] text-foreground w-full">
+                            {members.map((m) => <option key={m.id} value={m.id}>{m.name ?? m.email}</option>)}
+                          </select>
+                        </div>
+                        <div className="flex gap-2">
+                          <div className="flex flex-col gap-1 flex-1">
+                            <label className="text-xs font-medium text-foreground">Ajuste USD</label>
+                            <input type="number" step="0.01" value={correctForm.adjustmentUsd} onChange={(e) => setCorrectForm((f) => ({ ...f, adjustmentUsd: e.target.value }))} className="h-8 px-2 rounded border border-border bg-background text-[13px] text-foreground w-full" />
+                          </div>
+                          <div className="flex flex-col gap-1 flex-1">
+                            <label className="text-xs font-medium text-foreground">Tag</label>
+                            <input type="text" value={correctForm.tag} onChange={(e) => setCorrectForm((f) => ({ ...f, tag: e.target.value }))} placeholder="ej: movimiento-binance" className="h-8 px-2 rounded border border-border bg-background text-[13px] text-foreground w-full" />
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-xs font-medium text-foreground">Notas</label>
+                          <input type="text" value={correctForm.notes} onChange={(e) => setCorrectForm((f) => ({ ...f, notes: e.target.value }))} placeholder="Opcional" className="h-8 px-2 rounded border border-border bg-background text-[13px] text-foreground w-full" />
+                        </div>
+                        <button onClick={() => handleCorrect(a.id)} disabled={correctLoading || !correctForm.fundId || !correctForm.memberId} className="w-full h-8 px-3 rounded bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold disabled:opacity-50 cursor-pointer border-none transition-colors">
+                          {correctLoading ? "Guardando…" : "Aplicar corrección"}
+                        </button>
+                        {correctError && <p className="text-xs text-red-600 dark:text-red-400">{correctError}</p>}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm min-w-[700px]">
                 <thead>
                   <tr className="border-b border-border bg-muted/50 text-muted-foreground text-xs">
@@ -489,7 +574,7 @@ export function AuditClient({
                     return (
                       <Fragment key={a.id}>
                         <tr className="border-b border-border/60 hover:bg-muted/30">
-                          <td className="px-4 py-2.5 whitespace-nowrap text-muted-foreground text-xs">
+                          <td suppressHydrationWarning className="px-4 py-2.5 whitespace-nowrap text-muted-foreground text-xs">
                             {a.createdAt ? new Date(a.createdAt).toLocaleString("es-VE") : "—"}
                           </td>
                           <td className="px-4 py-2.5 text-right text-muted-foreground">${parseFloat(a.binanceSpotUsdt).toFixed(2)}</td>
@@ -521,59 +606,29 @@ export function AuditClient({
                               <div className="flex flex-wrap gap-3 items-end">
                                 <div className="flex flex-col gap-1">
                                   <label className="text-xs font-medium text-foreground">Fondo</label>
-                                  <select
-                                    value={correctForm.fundId}
-                                    onChange={(e) => setCorrectForm((f) => ({ ...f, fundId: e.target.value }))}
-                                    className="h-8 px-2 rounded border border-border bg-background text-[13px] text-foreground"
-                                  >
+                                  <select value={correctForm.fundId} onChange={(e) => setCorrectForm((f) => ({ ...f, fundId: e.target.value }))} className="h-8 px-2 rounded border border-border bg-background text-[13px] text-foreground">
                                     {activeFunds.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
                                   </select>
                                 </div>
                                 <div className="flex flex-col gap-1">
                                   <label className="text-xs font-medium text-foreground">Miembro</label>
-                                  <select
-                                    value={correctForm.memberId}
-                                    onChange={(e) => setCorrectForm((f) => ({ ...f, memberId: e.target.value }))}
-                                    className="h-8 px-2 rounded border border-border bg-background text-[13px] text-foreground"
-                                  >
+                                  <select value={correctForm.memberId} onChange={(e) => setCorrectForm((f) => ({ ...f, memberId: e.target.value }))} className="h-8 px-2 rounded border border-border bg-background text-[13px] text-foreground">
                                     {members.map((m) => <option key={m.id} value={m.id}>{m.name ?? m.email}</option>)}
                                   </select>
                                 </div>
                                 <div className="flex flex-col gap-1">
                                   <label className="text-xs font-medium text-foreground">Ajuste USD</label>
-                                  <input
-                                    type="number"
-                                    step="0.01"
-                                    value={correctForm.adjustmentUsd}
-                                    onChange={(e) => setCorrectForm((f) => ({ ...f, adjustmentUsd: e.target.value }))}
-                                    className="h-8 w-28 px-2 rounded border border-border bg-background text-[13px] text-foreground"
-                                  />
+                                  <input type="number" step="0.01" value={correctForm.adjustmentUsd} onChange={(e) => setCorrectForm((f) => ({ ...f, adjustmentUsd: e.target.value }))} className="h-8 w-28 px-2 rounded border border-border bg-background text-[13px] text-foreground" />
                                 </div>
                                 <div className="flex flex-col gap-1">
                                   <label className="text-xs font-medium text-foreground">Tag</label>
-                                  <input
-                                    type="text"
-                                    value={correctForm.tag}
-                                    onChange={(e) => setCorrectForm((f) => ({ ...f, tag: e.target.value }))}
-                                    placeholder="ej: movimiento-binance"
-                                    className="h-8 w-36 px-2 rounded border border-border bg-background text-[13px] text-foreground"
-                                  />
+                                  <input type="text" value={correctForm.tag} onChange={(e) => setCorrectForm((f) => ({ ...f, tag: e.target.value }))} placeholder="ej: movimiento-binance" className="h-8 w-36 px-2 rounded border border-border bg-background text-[13px] text-foreground" />
                                 </div>
                                 <div className="flex flex-col gap-1 flex-1 min-w-[160px]">
                                   <label className="text-xs font-medium text-foreground">Notas</label>
-                                  <input
-                                    type="text"
-                                    value={correctForm.notes}
-                                    onChange={(e) => setCorrectForm((f) => ({ ...f, notes: e.target.value }))}
-                                    placeholder="Opcional"
-                                    className="h-8 px-2 rounded border border-border bg-background text-[13px] text-foreground w-full"
-                                  />
+                                  <input type="text" value={correctForm.notes} onChange={(e) => setCorrectForm((f) => ({ ...f, notes: e.target.value }))} placeholder="Opcional" className="h-8 px-2 rounded border border-border bg-background text-[13px] text-foreground w-full" />
                                 </div>
-                                <button
-                                  onClick={() => handleCorrect(a.id)}
-                                  disabled={correctLoading || !correctForm.fundId || !correctForm.memberId}
-                                  className="h-8 px-3 rounded bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold disabled:opacity-50 cursor-pointer border-none transition-colors"
-                                >
+                                <button onClick={() => handleCorrect(a.id)} disabled={correctLoading || !correctForm.fundId || !correctForm.memberId} className="h-8 px-3 rounded bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold disabled:opacity-50 cursor-pointer border-none transition-colors">
                                   {correctLoading ? "Guardando…" : "Aplicar corrección"}
                                 </button>
                                 {correctError && <p className="text-xs text-red-600 dark:text-red-400">{correctError}</p>}
@@ -606,7 +661,29 @@ export function AuditClient({
         <div>
           <h2 className="text-sm font-semibold text-foreground mb-3">Historial de correcciones</h2>
           <div className="rounded-xl border border-border overflow-hidden">
-            <div className="overflow-x-auto">
+            {/* Mobile cards */}
+            <div className="block md:hidden divide-y divide-border/60">
+              {corrections.map((c) => (
+                <div key={c.id} className="p-4 space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span suppressHydrationWarning className="text-[11px] text-muted-foreground">{c.correctedAt ? new Date(c.correctedAt).toLocaleString("es-VE") : "—"}</span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <StatusBadgeCompact status={c.status} />
+                      <span className="text-[10px] text-muted-foreground">{c.isAutomatic === "true" ? "Auto" : "Manual"}</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{c.fundName} · {c.memberName}</p>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-sm font-bold ${parseFloat(c.adjustmentUsd) >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                      {parseFloat(c.adjustmentUsd) >= 0 ? "+" : ""}${parseFloat(c.adjustmentUsd).toFixed(2)}
+                    </span>
+                    {c.tag && <span className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-xs">{c.tag}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm min-w-[600px]">
                 <thead>
                   <tr className="border-b border-border bg-muted/50 text-muted-foreground text-xs">
@@ -622,7 +699,7 @@ export function AuditClient({
                 <tbody>
                   {corrections.map((c) => (
                     <tr key={c.id} className="border-b border-border/60">
-                      <td className="px-4 py-2.5 whitespace-nowrap text-muted-foreground text-xs">
+                      <td suppressHydrationWarning className="px-4 py-2.5 whitespace-nowrap text-muted-foreground text-xs">
                         {c.correctedAt ? new Date(c.correctedAt).toLocaleString("es-VE") : "—"}
                       </td>
                       <td className="px-4 py-2.5 text-foreground">{c.fundName ?? "—"}</td>

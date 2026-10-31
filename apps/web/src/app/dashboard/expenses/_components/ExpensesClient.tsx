@@ -416,10 +416,10 @@ export function ExpensesClient({
 
               {/* Actual table */}
               <div ref={tableScrollRef} onScroll={syncTopFromBottom} className="overflow-x-auto">
-                <table className="w-full border-collapse text-sm min-w-[820px] [&_td]:align-middle">
+                <table className="w-full border-collapse text-sm min-w-[980px] [&_td]:align-middle">
                   <thead>
                     <tr className="border-b border-border bg-muted/50 text-muted-foreground text-xs">
-                      <th className="text-left px-4 py-3 font-semibold uppercase tracking-wide">Descripción</th>
+                      <th className="text-left px-4 py-3 font-semibold uppercase tracking-wide min-w-[220px]">Descripción</th>
                       <th className="text-left px-4 py-3 font-semibold uppercase tracking-wide">Tipo</th>
                       <th className="text-left px-4 py-3 font-semibold uppercase tracking-wide">Comercio</th>
                       <th className="text-left px-4 py-3 font-semibold uppercase tracking-wide">Miembro</th>
@@ -436,12 +436,12 @@ export function ExpensesClient({
                       const expTypAmts = typeAmountsByExpense[e.id] ?? [];
                       return (
                         <tr key={e.id} className="border-b border-border/60 hover:bg-muted/30 transition-colors">
-                          <td className="px-4 py-3">
-                            <span className="font-medium text-foreground">{e.description}</span>
+                          <td className="px-4 py-3 min-w-[220px]">
+                            <p className="font-medium text-foreground line-clamp-2" title={e.description}>{e.description}</p>
                             {src && (
-                              <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-green-50 dark:bg-green-950/40 px-2 py-px text-xs font-medium text-green-700 dark:text-green-400">
-                                <span className="inline-block size-1.5 rounded-full" style={{ background: src.color ?? "#16A34A" }} />
-                                {src.name}
+                              <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-green-50 dark:bg-green-950/40 px-2 py-px text-xs font-medium text-green-700 dark:text-green-400 whitespace-nowrap max-w-full overflow-hidden text-ellipsis">
+                                <span className="inline-block size-1.5 rounded-full shrink-0" style={{ background: src.color ?? "#16A34A" }} />
+                                <span className="truncate">{src.name}</span>
                               </span>
                             )}
                           </td>
