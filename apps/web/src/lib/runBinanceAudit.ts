@@ -134,7 +134,7 @@ export async function runBinanceAudit(triggeredBy: "cron" | "manual"): Promise<{
         type: "binance-audit",
         title,
         body,
-        data: { auditId: audit.id, status, discrepancyUsd, link: "/dashboard/audit" },
+        data: { auditId: audit.id, status, discrepancyUsd, link: "/audit" },
       }))
     );
   }

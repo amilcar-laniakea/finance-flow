@@ -20,5 +20,5 @@ export async function setActiveInstance(householdId: string): Promise<void> {
     maxAge: 60 * 60 * 24 * 30,
   });
 
-  revalidatePath("/dashboard", "layout");
+  revalidatePath("/", "layout");
 }
