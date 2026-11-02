@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { db, incomeSources, incomes, expenses, expenseSourceSplits } from "@repo/db";
 import { eq, and, isNull, sql } from "drizzle-orm";
+import { getInstanceContext } from "@/lib/getInstanceContext";
 
 export async function GET() {
   const { userId } = await auth();
@@ -48,11 +49,13 @@ export async function POST(request: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const ctx = await getInstanceContext();
+  if (!ctx || !ctx.canWrite) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
   const body = await request.json() as {
     name: string;
     description?: string;
     color?: string;
-    householdId?: string;
   };
 
   if (!body.name) {
@@ -65,7 +68,7 @@ export async function POST(request: NextRequest) {
       name: body.name.trim(),
       description: body.description?.trim() || null,
       color: body.color ?? "#16A34A",
-      householdId: body.householdId ?? null,
+      householdId: ctx.activeHousehold.id,
     })
     .returning();
 
