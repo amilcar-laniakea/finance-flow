@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { db, incomes, incomeDistributions } from "@repo/db";
 import { and, isNull, desc, eq } from "drizzle-orm";
-import { getOrCreateUser } from "@/lib/getOrCreateUser";
+import { getInstanceContext } from "@/lib/getInstanceContext";
 
 export async function GET(request: NextRequest) {
   const { userId } = await auth();
@@ -34,13 +34,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const dbUser = await getOrCreateUser(userId);
-  if (!dbUser) {
+  const ctx = await getInstanceContext();
+  if (!ctx || !ctx.canWrite) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const body = await request.json() as {
-    householdId: string;
     memberId?: string;
     categoryId?: string;
     accountId?: string;
@@ -57,7 +56,7 @@ export async function POST(request: NextRequest) {
   const [created] = await db
     .insert(incomes)
     .values({
-      householdId: body.householdId,
+      householdId: ctx.activeHousehold.id,
       memberId: body.memberId,
       categoryId: body.categoryId,
       accountId: body.accountId,
@@ -68,7 +67,7 @@ export async function POST(request: NextRequest) {
       source: body.source,
       sourceId: body.sourceId || null,
       period: new Date(body.period),
-      createdBy: dbUser.id,
+      createdBy: ctx.dbUserId,
     })
     .returning();
 

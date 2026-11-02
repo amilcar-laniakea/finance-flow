@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { db, expenses, incomes, incomeSources, expenseSourceSplits, expenseTypeAmounts } from "@repo/db";
 import { eq, and, isNull, desc, sql } from "drizzle-orm";
-import { getOrCreateUser } from "@/lib/getOrCreateUser";
+import { getInstanceContext } from "@/lib/getInstanceContext";
 
 /** Compute available balance for a single income source */
 async function getSourceBalance(sourceId: string): Promise<number> {
@@ -72,13 +72,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const dbUser = await getOrCreateUser(userId);
-  if (!dbUser) {
+  const ctx = await getInstanceContext();
+  if (!ctx || !ctx.canWrite) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const body = await request.json() as {
-    householdId: string;
     memberId?: string;
     categoryId?: string;
     accountId?: string;
@@ -143,7 +142,7 @@ export async function POST(request: NextRequest) {
     const [created] = await db
       .insert(expenses)
       .values({
-        householdId: body.householdId,
+        householdId: ctx.activeHousehold.id,
         memberId: body.memberId,
         categoryId: body.categoryId,
         accountId: body.accountId,
@@ -155,7 +154,7 @@ export async function POST(request: NextRequest) {
         isRecurring: body.isRecurring ?? false,
         incomeSourceId: null,
         period: new Date(body.period),
-        createdBy: dbUser.id,
+        createdBy: ctx.dbUserId,
       })
       .returning();
 
@@ -194,7 +193,7 @@ export async function POST(request: NextRequest) {
   const [created] = await db
     .insert(expenses)
     .values({
-      householdId: body.householdId,
+      householdId: ctx.activeHousehold.id,
       memberId: body.memberId,
       categoryId: body.categoryId,
       accountId: body.accountId,
@@ -206,7 +205,7 @@ export async function POST(request: NextRequest) {
       isRecurring: body.isRecurring ?? false,
       incomeSourceId: body.incomeSourceId || null,
       period: new Date(body.period),
-      createdBy: dbUser.id,
+      createdBy: ctx.dbUserId,
     })
     .returning();
 

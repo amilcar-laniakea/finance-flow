@@ -1,7 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
-import { db, transfers, users } from "@repo/db";
-import { eq, and, isNull, desc } from "drizzle-orm";
+import { db, transfers } from "@repo/db";
+import { and, isNull, desc, eq } from "drizzle-orm";
+import { getInstanceContext } from "@/lib/getInstanceContext";
 
 export async function GET(request: NextRequest) {
   const { userId } = await auth();
@@ -33,18 +34,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const dbUser = await db
-    .select()
-    .from(users)
-    .where(eq(users.clerkId, userId))
-    .limit(1);
-
-  if (!dbUser[0]) {
-    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  const ctx = await getInstanceContext();
+  if (!ctx || !ctx.canWrite) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const body = await request.json() as {
-    householdId: string;
     fromAccountId: string;
     toAccountId: string;
     amountUsd: string;
@@ -57,7 +52,7 @@ export async function POST(request: NextRequest) {
   const [created] = await db
     .insert(transfers)
     .values({
-      householdId: body.householdId,
+      householdId: ctx.activeHousehold.id,
       fromAccountId: body.fromAccountId,
       toAccountId: body.toAccountId,
       amountUsd: body.amountUsd,
@@ -65,7 +60,7 @@ export async function POST(request: NextRequest) {
       exchangeRate: body.exchangeRate,
       description: body.description,
       period: new Date(body.period),
-      createdBy: dbUser[0].id,
+      createdBy: ctx.dbUserId,
     })
     .returning();
 
