@@ -26,6 +26,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  Spinner,
   useSidebar,
 } from "@repo/ui"
 import {
@@ -131,6 +132,7 @@ export function AppSidebar({ user, instanceCtx }: AppSidebarProps) {
   }
 
   function handleSwitchInstance(id: string) {
+    if (isMobile) setOpenMobile(false)
     startTransition(async () => {
       await setActiveInstance(id)
       router.refresh()
@@ -192,7 +194,10 @@ export function AppSidebar({ user, instanceCtx }: AppSidebarProps) {
                   >
                     <Building2 className="size-4 shrink-0" />
                     <span className="truncate text-xs font-medium">{instanceLabel}</span>
-                    <ChevronsUpDown className="ml-auto size-3.5 shrink-0 opacity-60" />
+                    {isPending
+                      ? <Spinner className="ml-auto size-3.5 shrink-0" />
+                      : <ChevronsUpDown className="ml-auto size-3.5 shrink-0 opacity-60" />
+                    }
                   </SidebarMenuButton>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="bottom" align="start" className="min-w-52 w-[--radix-dropdown-menu-trigger-width]">
