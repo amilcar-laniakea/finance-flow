@@ -24,7 +24,7 @@ export function DashboardShell({
     <SidebarProvider>
       <AppSidebar user={user} instanceCtx={instanceCtx} />
 
-      <SidebarInset className="min-w-0">
+      <SidebarInset className="min-w-0 h-svh overflow-y-auto">
         <DashbardTopbar user={user} />
         <div className="flex flex-1 flex-col gap-4 p-4 bg-background min-w-0">{children}</div>
       </SidebarInset>

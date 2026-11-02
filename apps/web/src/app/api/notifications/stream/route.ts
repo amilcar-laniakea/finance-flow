@@ -3,6 +3,9 @@ import { eq, isNull, desc, and } from "drizzle-orm";
 import { auth } from "@clerk/nextjs/server";
 import { getOrCreateUser } from "@/lib/getOrCreateUser";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 export async function GET(request: Request) {
   const { userId } = await auth();
   if (!userId) return new Response("Unauthorized", { status: 401 });
@@ -27,7 +30,8 @@ export async function GET(request: Request) {
           lastPayload = payload;
           controller.enqueue(encoder.encode(`data: ${payload}\n\n`));
         } catch {
-          controller.close();
+          // Send empty payload so connection stays alive; poll will retry
+          controller.enqueue(encoder.encode(`data: []\n\n`));
         }
       };
 
