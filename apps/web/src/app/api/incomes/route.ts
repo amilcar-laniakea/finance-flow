@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { db, incomes, incomeDistributions } from "@repo/db";
 import { and, isNull, desc, eq } from "drizzle-orm";
 import { getInstanceContext } from "@/lib/getInstanceContext";
@@ -92,5 +93,7 @@ export async function POST(request: NextRequest) {
     }))
   );
 
+  revalidatePath("/members");
+  revalidatePath("/");
   return NextResponse.json(created, { status: 201 });
 }

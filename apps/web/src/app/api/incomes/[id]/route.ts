@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { db, incomes, incomeDistributions } from "@repo/db";
 import { eq, and, isNull } from "drizzle-orm";
 
@@ -69,6 +70,8 @@ export async function PUT(
     }
   }
 
+  revalidatePath("/members");
+  revalidatePath("/");
   return NextResponse.json(updated);
 }
 
@@ -93,5 +96,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  revalidatePath("/members");
+  revalidatePath("/");
   return NextResponse.json({ success: true });
 }

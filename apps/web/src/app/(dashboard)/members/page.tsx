@@ -31,7 +31,6 @@ export default async function MembersPage() {
         .from(incomeDistributions)
         .innerJoin(incomes, and(eq(incomeDistributions.incomeId, incomes.id), isNull(incomes.deletedAt), eq(incomes.householdId, hid)))
         .where(eq(incomeDistributions.memberId, u.id));
-
       const [exp] = await db
         .select({ total: sql<string>`COALESCE(SUM(amount_usd), 0)` })
         .from(expenses)

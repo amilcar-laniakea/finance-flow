@@ -15,7 +15,11 @@ export default async function IncomesPage() {
     db.select({ id: incomeSources.id, name: incomeSources.name, color: incomeSources.color })
       .from(incomeSources).where(and(eq(incomeSources.isActive, true), eq(incomeSources.householdId, hid))).orderBy(incomeSources.name),
     db.select({ id: users.id, nickname: users.fullName }).from(users)
-      .where(and(isNull(users.deletedAt), ne(users.role, "superadmin")))
+      .where(and(
+        isNull(users.deletedAt),
+        ne(users.role, "superadmin"),
+        ctx.activeHousehold.isPersonal ? eq(users.personalHouseholdId, hid) : undefined,
+      ))
       .orderBy(users.fullName),
   ]);
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Search, X } from "lucide-react";
 import { RegisterUserModal } from "./RegisterUserModal";
 import { MemberDetailModal } from "./MemberDetailModal";
@@ -45,6 +46,9 @@ export function MembersClient({
   distributionsByMember,
   transfersByMember,
 }: Props) {
+  const router = useRouter();
+  useEffect(() => { router.refresh(); }, []);
+
   const [search, setSearch] = useState("");
 
   const balanceMap = useMemo(

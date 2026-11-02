@@ -5,6 +5,7 @@ import {
 import { isNull, and, gte, lte, sql, desc, eq, or } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getInstanceContext } from "@/lib/getInstanceContext";
+import { AutoRefresh } from "@/components/auto-refresh";
 import {
   Card, CardContent, CardHeader, CardTitle,
   Progress,
@@ -148,6 +149,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <AutoRefresh />
       {/* Page header */}
       <div>
         <h1 className="text-2xl font-bold">Resumen</h1>
