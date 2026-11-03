@@ -110,7 +110,7 @@ export function MembersClient({
           <h2 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-2.5">
             Saldo por usuario
           </h2>
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] md:grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-3">
             {balances.map((m) => (
               <div key={m.userId} className="bg-card border border-border rounded-lg p-4">
                 <p className="font-bold text-sm mb-3 text-foreground">
@@ -118,21 +118,21 @@ export function MembersClient({
                 </p>
                 <div className="flex flex-col gap-1.5">
                   <div className="flex justify-between text-[13px]">
-                    <span className="text-muted-foreground">Recibido</span>
-                    <span className="font-semibold text-blue-600 dark:text-blue-400">${m.totalReceived.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-[13px]">
-                    <span className="text-muted-foreground">Gastado</span>
-                    <span className="font-semibold text-red-600 dark:text-red-400">${m.totalSpent.toFixed(2)}</span>
+                    <span className="text-muted-foreground">Ingresos (directos)</span>
+                    <span className="font-semibold text-sky-500 dark:text-sky-400">${m.totalReceived.toFixed(2)}</span>
                   </div>
                   {(m.transfersIn > 0 || m.transfersOut > 0) && (
                     <div className="flex justify-between text-[13px]">
-                      <span className="text-muted-foreground">Transferencias</span>
-                      <span className={`font-semibold ${m.transfersIn - m.transfersOut >= 0 ? "text-purple-600 dark:text-purple-400" : "text-orange-600 dark:text-orange-400"}`}>
+                      <span className="text-muted-foreground">Ingresos (transferencias)</span>
+                      <span className={`font-semibold ${m.transfersIn - m.transfersOut >= 0 ? "text-blue-600 dark:text-blue-400" : "text-orange-600 dark:text-orange-400"}`}>
                         {m.transfersIn - m.transfersOut >= 0 ? "+" : ""}${(m.transfersIn - m.transfersOut).toFixed(2)}
                       </span>
                     </div>
                   )}
+                  <div className="flex justify-between text-[13px]">
+                    <span className="text-muted-foreground">Gastos</span>
+                    <span className="font-semibold text-red-600 dark:text-red-400">${m.totalSpent.toFixed(2)}</span>
+                  </div>
                   <div className="border-t border-border/60 pt-1.5 mt-0.5 flex justify-between text-[13px]">
                     <span className="font-semibold text-foreground">Saldo</span>
                     <span className={`font-bold ${m.balance >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
