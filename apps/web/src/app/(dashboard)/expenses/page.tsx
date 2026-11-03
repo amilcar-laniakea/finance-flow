@@ -7,6 +7,7 @@ import {
   expenseSourceSplits,
   expenseTypeAmounts,
   expenseTypes,
+  fundTransfers,
 } from "@repo/db";
 import { isNull, desc, eq, and, ne, sql, inArray, or } from "drizzle-orm";
 import { redirect } from "next/navigation";
@@ -74,10 +75,20 @@ export default async function ExpensesPage() {
             isNull(expenses.deletedAt),
           ),
         );
+      const [tin] = await db
+        .select({ total: sql<string>`COALESCE(SUM(amount_usd), 0)` })
+        .from(fundTransfers)
+        .where(and(eq(fundTransfers.toSourceId, s.id), isNull(fundTransfers.deletedAt), or(eq(fundTransfers.householdId, hid), eq(fundTransfers.toHouseholdId, hid))));
+      const [tout] = await db
+        .select({ total: sql<string>`COALESCE(SUM(amount_usd), 0)` })
+        .from(fundTransfers)
+        .where(and(eq(fundTransfers.fromSourceId, s.id), isNull(fundTransfers.deletedAt), eq(fundTransfers.householdId, hid)));
       const balance =
         parseFloat(inc?.total ?? "0") -
         parseFloat(exp?.total ?? "0") -
-        parseFloat(spl?.total ?? "0");
+        parseFloat(spl?.total ?? "0") +
+        parseFloat(tin?.total ?? "0") -
+        parseFloat(tout?.total ?? "0");
       return { ...s, balance };
     }),
   );

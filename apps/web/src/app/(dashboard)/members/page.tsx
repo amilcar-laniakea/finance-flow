@@ -1,5 +1,6 @@
 import { db, users, incomeDistributions, expenses, incomes, incomeSources, fundTransfers } from "@repo/db";
 import { eq, isNull, ne, sql, and, or, inArray, desc } from "drizzle-orm";
+
 import { redirect } from "next/navigation";
 import { getInstanceContext } from "@/lib/getInstanceContext";
 import { MembersClient } from "./_components/MembersClient";
@@ -39,7 +40,7 @@ export default async function MembersPage() {
       const [tin] = await db
         .select({ total: sql<string>`COALESCE(SUM(amount_usd), 0)` })
         .from(fundTransfers)
-        .where(and(eq(fundTransfers.toMemberId, u.id), isNull(fundTransfers.deletedAt), eq(fundTransfers.householdId, hid)));
+        .where(and(eq(fundTransfers.toMemberId, u.id), isNull(fundTransfers.deletedAt), or(eq(fundTransfers.householdId, hid), eq(fundTransfers.toHouseholdId, hid))));
       const [tout] = await db
         .select({ total: sql<string>`COALESCE(SUM(amount_usd), 0)` })
         .from(fundTransfers)

@@ -125,6 +125,7 @@ export async function POST(req: Request) {
       fromSourceId,
       toSourceId,
       fromMemberId,
+      toMemberId: toHousehold?.ownerId ?? null,
       amountUsd,
       description: description || null,
       period: period ? new Date(period) : new Date(),
