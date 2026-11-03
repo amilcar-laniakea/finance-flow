@@ -69,7 +69,7 @@ export function MembersClient({
   const active = filtered.filter((u) => u.clerkId);
   const pending = filtered.filter((u) => !u.clerkId);
 
-  const showBalances = balances.some((m) => m.totalReceived > 0 || m.totalSpent > 0);
+  const showBalances = balances.some((m) => m.totalReceived > 0 || m.totalSpent > 0 || m.balance !== 0);
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
