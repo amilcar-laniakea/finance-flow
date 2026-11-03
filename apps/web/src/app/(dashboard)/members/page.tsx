@@ -52,7 +52,7 @@ export default async function MembersPage() {
       const transfersOut = parseFloat(tout?.total ?? "0");
       const balance = totalReceived - totalSpent + transfersIn - transfersOut;
 
-      return { userId: u.id, fullName: u.fullName, totalReceived, totalSpent, balance };
+      return { userId: u.id, fullName: u.fullName, totalReceived, totalSpent, transfersIn, transfersOut, balance };
     }),
   );
 

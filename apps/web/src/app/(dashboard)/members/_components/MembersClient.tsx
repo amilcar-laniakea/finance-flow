@@ -28,6 +28,8 @@ type BalanceInfo = {
   fullName: string | null;
   totalReceived: number;
   totalSpent: number;
+  transfersIn: number;
+  transfersOut: number;
   balance: number;
 };
 
@@ -117,15 +119,23 @@ export function MembersClient({
                 <div className="flex flex-col gap-1.5">
                   <div className="flex justify-between text-[13px]">
                     <span className="text-muted-foreground">Recibido</span>
-                    <span className="font-semibold text-green-600 dark:text-green-400">${m.totalReceived.toFixed(2)}</span>
+                    <span className="font-semibold text-blue-600 dark:text-blue-400">${m.totalReceived.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-[13px]">
                     <span className="text-muted-foreground">Gastado</span>
                     <span className="font-semibold text-red-600 dark:text-red-400">${m.totalSpent.toFixed(2)}</span>
                   </div>
+                  {(m.transfersIn > 0 || m.transfersOut > 0) && (
+                    <div className="flex justify-between text-[13px]">
+                      <span className="text-muted-foreground">Transferencias</span>
+                      <span className={`font-semibold ${m.transfersIn - m.transfersOut >= 0 ? "text-purple-600 dark:text-purple-400" : "text-orange-600 dark:text-orange-400"}`}>
+                        {m.transfersIn - m.transfersOut >= 0 ? "+" : ""}${(m.transfersIn - m.transfersOut).toFixed(2)}
+                      </span>
+                    </div>
+                  )}
                   <div className="border-t border-border/60 pt-1.5 mt-0.5 flex justify-between text-[13px]">
                     <span className="font-semibold text-foreground">Saldo</span>
-                    <span className={`font-bold ${m.balance >= 0 ? "text-blue-700 dark:text-blue-400" : "text-red-600 dark:text-red-400"}`}>
+                    <span className={`font-bold ${m.balance >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
                       {m.balance >= 0 ? "+" : ""}${m.balance.toFixed(2)}
                     </span>
                   </div>
@@ -237,8 +247,8 @@ function UserRow({
         {mb && (
           <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold whitespace-nowrap ${
             mb.balance >= 0
-              ? "bg-green-50 dark:bg-green-950/40 text-green-600 dark:text-green-400"
-              : "bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400"
+              ? "bg-muted text-green-600 dark:text-green-400"
+              : "bg-muted text-red-600 dark:text-red-400"
           }`}>
             {mb.balance >= 0 ? "+" : ""}${mb.balance.toFixed(2)}
           </span>
