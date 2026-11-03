@@ -75,18 +75,21 @@ export default async function InstanceTransfersPage() {
     ),
   ]);
 
-  const householdMap = Object.fromEntries(allHouseholds.map((h) => [h.id, h.name]));
+  const householdMap: Record<string, string> = Object.fromEntries(allHouseholds.map((h) => [h.id, h.name]));
 
   const rawRows = await db
     .select({
       id: fundTransfers.id,
       fromSourceId: fundTransfers.fromSourceId,
       toSourceId: fundTransfers.toSourceId,
+      fromMemberId: fundTransfers.fromMemberId,
+      toMemberId: fundTransfers.toMemberId,
       householdId: fundTransfers.householdId,
       toHouseholdId: fundTransfers.toHouseholdId,
       amountUsd: fundTransfers.amountUsd,
       description: fundTransfers.description,
       period: fundTransfers.period,
+      createdAt: fundTransfers.createdAt,
     })
     .from(fundTransfers)
     .where(
@@ -101,6 +104,15 @@ export default async function InstanceTransfersPage() {
     )
     .orderBy(desc(fundTransfers.period));
 
+  // Resolve any household IDs from transfers not already in the map (e.g. personal households of other users)
+  const missingHouseholdIds = [...new Set(
+    rawRows.flatMap((r) => [r.householdId, r.toHouseholdId].filter((id): id is string => !!id && !(id in householdMap)))
+  )];
+  if (missingHouseholdIds.length > 0) {
+    const extra = await db.select({ id: households.id, name: households.name }).from(households).where(inArray(households.id, missingHouseholdIds));
+    for (const h of extra) householdMap[h.id] = h.name;
+  }
+
   const allSourceIds = [...new Set(rawRows.flatMap((r) => [r.fromSourceId, r.toSourceId].filter(Boolean) as string[]))];
   const sourcesInfo = allSourceIds.length > 0
     ? await db.select({ id: incomeSources.id, name: incomeSources.name, color: incomeSources.color })
@@ -108,10 +120,20 @@ export default async function InstanceTransfersPage() {
     : [];
   const sourceMap = Object.fromEntries(sourcesInfo.map((s) => [s.id, s]));
 
+  const allMemberIds = [...new Set(rawRows.flatMap((r) => [r.fromMemberId, r.toMemberId].filter(Boolean) as string[]))];
+  const membersInfo = allMemberIds.length > 0
+    ? await db.select({ id: users.id, name: users.fullName }).from(users).where(inArray(users.id, allMemberIds))
+    : [];
+  const memberMap = Object.fromEntries(membersInfo.map((u) => [u.id, u.name]));
+
   const rows = rawRows.map((r) => ({
     id: r.id,
     fromSourceId: r.fromSourceId,
     toSourceId: r.toSourceId,
+    fromMemberId: r.fromMemberId,
+    toMemberId: r.toMemberId,
+    fromMemberName: r.fromMemberId ? (memberMap[r.fromMemberId] ?? null) : null,
+    toMemberName: r.toMemberId ? (memberMap[r.toMemberId] ?? null) : null,
     fromSourceName: r.fromSourceId ? (sourceMap[r.fromSourceId]?.name ?? null) : null,
     fromSourceColor: r.fromSourceId ? (sourceMap[r.fromSourceId]?.color ?? null) : null,
     toSourceName: r.toSourceId ? (sourceMap[r.toSourceId]?.name ?? null) : null,
@@ -121,6 +143,7 @@ export default async function InstanceTransfersPage() {
     amountUsd: r.amountUsd,
     description: r.description,
     period: r.period ? new Date(r.period).toISOString() : null,
+    createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : null,
   }));
 
   const currentHousehold = allHouseholds.find((h) => h.id === hid);

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Trash2 } from "lucide-react";
+import { ArrowRight, Trash2, X, ArrowRightLeft } from "lucide-react";
 import { Button } from "@repo/ui";
 import { AddInstanceTransferModal } from "./AddInstanceTransferModal";
 
@@ -10,11 +10,14 @@ type Source = { id: string; name: string; color: string | null; balanceUsd?: num
 type Member = { id: string; name: string; balanceUsd: number };
 type OtherHousehold = { id: string; name: string; isMain: boolean; sources: Source[] };
 
-
 type TransferRow = {
   id: string;
   fromSourceId: string | null;
   toSourceId: string | null;
+  fromMemberId: string | null;
+  toMemberId: string | null;
+  fromMemberName: string | null;
+  toMemberName: string | null;
   fromSourceName: string | null;
   fromSourceColor: string | null;
   toSourceName: string | null;
@@ -24,9 +27,117 @@ type TransferRow = {
   amountUsd: string;
   description: string | null;
   period: string | null;
+  createdAt: string | null;
 };
 
 const PAGE_SIZES = [10, 20, 50] as const;
+
+function DetailDialog({ row, onClose }: { row: TransferRow; onClose: () => void }) {
+  const period = row.period ? new Date(row.period) : null;
+  const createdAt = row.createdAt ? new Date(row.createdAt) : null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <ArrowRightLeft size={18} className="text-muted-foreground shrink-0" />
+            <h2 className="text-base font-bold text-foreground">Detalle de transferencia</h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Amount */}
+        <div className="rounded-xl bg-muted/50 p-4 text-center">
+          <p className="text-[11px] text-muted-foreground mb-1">Monto transferido</p>
+          <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+            ${parseFloat(row.amountUsd).toFixed(2)}
+          </p>
+        </div>
+
+        {/* Origen → Destino */}
+        <div className="space-y-3">
+          <Section title="Origen" color="from">
+            <Field label="Instancia" value={row.fromHouseholdName} />
+            <SourceField label="Fondo" name={row.fromSourceName} color={row.fromSourceColor} />
+            <Field label="Usuario" value={row.fromMemberName} />
+          </Section>
+
+          <div className="flex justify-center">
+            <ArrowRight size={16} className="text-muted-foreground" />
+          </div>
+
+          <Section title="Destino" color="to">
+            <Field label="Instancia" value={row.toHouseholdName} />
+            <SourceField label="Fondo" name={row.toSourceName} color={row.toSourceColor} />
+            <Field label="Usuario" value={row.toMemberName} />
+          </Section>
+        </div>
+
+        {/* Meta */}
+        <div className="border-t border-border/60 pt-4 space-y-2">
+          {row.description && (
+            <Field label="Descripción" value={row.description} />
+          )}
+          {period && (
+            <Field
+              label="Período"
+              value={period.toLocaleDateString("es-VE", { year: "numeric", month: "long", day: "numeric" })}
+            />
+          )}
+          {createdAt && (
+            <Field
+              label="Registrado"
+              value={createdAt.toLocaleString("es-VE", {
+                year: "numeric", month: "2-digit", day: "2-digit",
+                hour: "2-digit", minute: "2-digit", second: "2-digit",
+              })}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; color: "from" | "to"; children: React.ReactNode }) {
+  return (
+    <div className="rounded-lg border border-border/60 p-3 space-y-1.5">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">{title}</p>
+      {children}
+    </div>
+  );
+}
+
+function Field({ label, value }: { label: string; value: string | null | undefined }) {
+  return (
+    <div className="flex items-center justify-between gap-3 text-[13px]">
+      <span className="text-muted-foreground shrink-0">{label}</span>
+      <span className="font-medium text-foreground text-right truncate">{value ?? "—"}</span>
+    </div>
+  );
+}
+
+function SourceField({ label, name, color }: { label: string; name: string | null; color: string | null }) {
+  return (
+    <div className="flex items-center justify-between gap-3 text-[13px]">
+      <span className="text-muted-foreground shrink-0">{label}</span>
+      <span className="flex items-center gap-1.5 font-medium text-foreground text-right truncate">
+        {color && <span className="inline-block size-2 rounded-full shrink-0" style={{ background: color }} />}
+        {name ?? "—"}
+      </span>
+    </div>
+  );
+}
 
 export function InstanceTransfersClient({
   currentSources,
@@ -47,6 +158,7 @@ export function InstanceTransfersClient({
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number | "all">(10);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<TransferRow | null>(null);
 
   const total = rows.length;
   const pageCount = pageSize === "all" ? 1 : Math.max(1, Math.ceil(total / pageSize));
@@ -62,6 +174,8 @@ export function InstanceTransfersClient({
 
   return (
     <div className="flex flex-col gap-6">
+      {selected && <DetailDialog row={selected} onClose={() => setSelected(null)} />}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -90,7 +204,11 @@ export function InstanceTransfersClient({
             {/* Mobile cards */}
             <div className="block md:hidden">
               {visible.map((r) => (
-                <div key={r.id} className="flex flex-col gap-2 border-b p-4 last:border-0">
+                <div
+                  key={r.id}
+                  className="flex flex-col gap-2 border-b p-4 last:border-0 cursor-pointer hover:bg-muted/30 transition-colors"
+                  onClick={() => setSelected(r)}
+                >
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-semibold text-foreground">${parseFloat(r.amountUsd).toFixed(2)}</span>
                     <span className="text-xs text-muted-foreground">
@@ -111,7 +229,7 @@ export function InstanceTransfersClient({
                     variant="ghost"
                     size="sm"
                     className="mt-1 self-end text-muted-foreground hover:text-red-600"
-                    onClick={() => handleDelete(r.id)}
+                    onClick={(e) => { e.stopPropagation(); handleDelete(r.id); }}
                     disabled={deletingId === r.id}
                   >
                     <Trash2 size={14} />
@@ -135,7 +253,11 @@ export function InstanceTransfersClient({
                 </thead>
                 <tbody>
                   {visible.map((r, idx) => (
-                    <tr key={r.id} className={idx < visible.length - 1 ? "border-b border-border/60" : ""}>
+                    <tr
+                      key={r.id}
+                      className={`cursor-pointer hover:bg-muted/30 transition-colors ${idx < visible.length - 1 ? "border-b border-border/60" : ""}`}
+                      onClick={() => setSelected(r)}
+                    >
                       <td className="px-5 py-3">
                         <div className="text-xs font-semibold text-foreground">{r.fromHouseholdName ?? "—"}</div>
                         <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
@@ -168,7 +290,7 @@ export function InstanceTransfersClient({
                           variant="ghost"
                           size="sm"
                           className="text-muted-foreground hover:text-red-600"
-                          onClick={() => handleDelete(r.id)}
+                          onClick={(e) => { e.stopPropagation(); handleDelete(r.id); }}
                           disabled={deletingId === r.id}
                         >
                           <Trash2 size={14} />
