@@ -120,6 +120,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: `Saldo insuficiente en el fondo origen. Disponible: $${bal.toFixed(2)}` }, { status: 422 });
     }
 
+    const [[toHousehold], [fromHousehold]] = await Promise.all([
+      db.select({ id: households.id, name: households.name, ownerId: households.ownerId }).from(households).where(eq(households.id, toHouseholdId)),
+      db.select({ name: households.name }).from(households).where(eq(households.id, fromHouseholdId)),
+    ]);
+
     const [created] = await db.insert(fundTransfers).values({
       transferType: "cross-instance",
       fromSourceId,
@@ -132,11 +137,6 @@ export async function POST(req: Request) {
       householdId: fromHouseholdId,
       toHouseholdId,
     }).returning();
-
-    // Notify the owner of the destination household
-    const [toHousehold] = await db.select({ id: households.id, name: households.name, ownerId: households.ownerId })
-      .from(households).where(eq(households.id, toHouseholdId));
-    const [fromHousehold] = await db.select({ name: households.name }).from(households).where(eq(households.id, fromHouseholdId));
 
     if (toHousehold?.ownerId) {
       await db.insert(notifications).values({
