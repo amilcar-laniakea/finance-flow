@@ -1,10 +1,10 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
-import { db, expenses, incomes, incomeSources, expenseSourceSplits, expenseTypeAmounts } from "@repo/db";
+import { db, expenses, incomes, incomeSources, expenseSourceSplits, expenseTypeAmounts, fundTransfers } from "@repo/db";
 import { eq, and, isNull, desc, sql } from "drizzle-orm";
 import { getInstanceContext } from "@/lib/getInstanceContext";
 
-/** Compute available balance for a single income source */
+/** Compute available balance for a single income source (includes cross-instance transfers) */
 async function getSourceBalance(sourceId: string): Promise<number> {
   const [inc] = await db
     .select({ total: sql<string>`COALESCE(SUM(amount_usd), 0)` })
@@ -22,10 +22,22 @@ async function getSourceBalance(sourceId: string): Promise<number> {
     .innerJoin(expenses, eq(expenseSourceSplits.expenseId, expenses.id))
     .where(and(eq(expenseSourceSplits.incomeSourceId, sourceId), isNull(expenses.deletedAt)));
 
+  const [tin] = await db
+    .select({ total: sql<string>`COALESCE(SUM(amount_usd), 0)` })
+    .from(fundTransfers)
+    .where(and(eq(fundTransfers.toSourceId, sourceId), isNull(fundTransfers.deletedAt)));
+
+  const [tout] = await db
+    .select({ total: sql<string>`COALESCE(SUM(amount_usd), 0)` })
+    .from(fundTransfers)
+    .where(and(eq(fundTransfers.fromSourceId, sourceId), isNull(fundTransfers.deletedAt)));
+
   return (
     parseFloat(inc?.total ?? "0") -
     parseFloat(exp?.total ?? "0") -
-    parseFloat(spl?.total ?? "0")
+    parseFloat(spl?.total ?? "0") +
+    parseFloat(tin?.total ?? "0") -
+    parseFloat(tout?.total ?? "0")
   );
 }
 
