@@ -234,10 +234,10 @@ export function AppSidebar({ user, instanceCtx }: AppSidebarProps) {
             {/* Section header: h-8 container that cross-fades label ↔ separator */}
             {/* Always same DOM structure to avoid React useId hydration mismatch */}
             <div className="relative flex h-8 items-center overflow-hidden px-2">
-              {/* Mobile: always just a separator */}
-              <div className="flex w-full md:hidden">
-                <Separator className="bg-sidebar-foreground/20" />
-              </div>
+              {/* Mobile: label text, no separator */}
+              <span className="block md:hidden whitespace-nowrap text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40">
+                {group.label}
+              </span>
               {/* Desktop: label when expanded, separator when collapsed */}
               <span
                 className="hidden md:block whitespace-nowrap text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40 transition-opacity duration-150"
