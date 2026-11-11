@@ -40,7 +40,7 @@ export default async function MembersPage() {
       const [tin] = await db
         .select({ total: sql<string>`COALESCE(SUM(amount_usd), 0)` })
         .from(fundTransfers)
-        .where(and(eq(fundTransfers.toMemberId, u.id), isNull(fundTransfers.deletedAt), or(eq(fundTransfers.householdId, hid), eq(fundTransfers.toHouseholdId, hid))));
+        .where(and(eq(fundTransfers.toMemberId, u.id), isNull(fundTransfers.deletedAt), or(and(eq(fundTransfers.householdId, hid), isNull(fundTransfers.toHouseholdId)), eq(fundTransfers.toHouseholdId, hid))));
       const [tout] = await db
         .select({ total: sql<string>`COALESCE(SUM(amount_usd), 0)` })
         .from(fundTransfers)
