@@ -27,19 +27,19 @@ export default async function TransfersPage() {
 
   const hid = ctx.activeHousehold.id;
 
-  const [rawSources, rawUsers] = await Promise.all([
-    db.select({ id: incomeSources.id, name: incomeSources.name, color: incomeSources.color })
-      .from(incomeSources).where(and(eq(incomeSources.isActive, true), eq(incomeSources.householdId, hid))).orderBy(incomeSources.name),
-    db.select({ id: users.id, name: users.fullName }).from(users)
-      .where(and(
-        isNull(users.deletedAt),
-        ne(users.role, "superadmin"),
-        ctx.activeHousehold.isPersonal
-          ? eq(users.personalHouseholdId, hid)
-          : or(isNull(users.personalHouseholdId), ctx.activeHousehold.ownerId ? eq(users.id, ctx.activeHousehold.ownerId) : undefined),
-      ))
-      .orderBy(users.fullName),
-  ]);
+  const rawSources = await db.select({ id: incomeSources.id, name: incomeSources.name, color: incomeSources.color })
+    .from(incomeSources).where(and(eq(incomeSources.isActive, true), eq(incomeSources.householdId, hid))).orderBy(incomeSources.name);
+
+  const rawUsers = await db.select({ id: users.id, name: users.fullName })
+    .from(users)
+    .where(and(
+      isNull(users.deletedAt),
+      ne(users.role, "superadmin"),
+      ctx.activeHousehold.isMain
+        ? or(isNull(users.homeHouseholdId), eq(users.homeHouseholdId, hid))
+        : or(eq(users.homeHouseholdId, hid), eq(users.personalHouseholdId, hid)),
+    ))
+    .orderBy(users.fullName);
 
   const [sources, members] = await Promise.all([
     Promise.all(rawSources.map(async (s) => ({ ...s, balance: await getFundBalance(s.id, hid) }))),

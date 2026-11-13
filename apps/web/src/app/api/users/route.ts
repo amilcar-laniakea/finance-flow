@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { db, users } from "@repo/db";
 import { eq, isNull } from "drizzle-orm";
+import { getInstanceContext } from "@/lib/getInstanceContext";
 
 export async function GET() {
   const { userId } = await auth();
@@ -30,6 +31,9 @@ export async function POST(request: NextRequest) {
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const ctx = await getInstanceContext();
+  if (!ctx) return NextResponse.json({ error: "No instance context" }, { status: 400 });
 
   const body = (await request.json()) as {
     email: string;
@@ -61,6 +65,7 @@ export async function POST(request: NextRequest) {
       email: body.email.toLowerCase().trim(),
       fullName: body.fullName?.trim() || null,
       role: body.role ?? "member",
+      homeHouseholdId: ctx.activeHousehold.id,
       // clerkId is intentionally null — user hasn't signed up via Clerk yet
     })
     .returning();

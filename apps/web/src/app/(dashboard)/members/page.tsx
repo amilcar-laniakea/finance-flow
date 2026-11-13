@@ -11,15 +11,15 @@ export default async function MembersPage() {
 
   const hid = ctx.activeHousehold.id;
 
-  // Personal instance: only show the owner (future: also their sub-members when that exists)
-  // Main instance: show all users
   const rows = await db
     .select({ id: users.id, email: users.email, fullName: users.fullName, role: users.role, clerkId: users.clerkId })
     .from(users)
     .where(and(
       isNull(users.deletedAt),
       ne(users.role, "superadmin"),
-      ctx.activeHousehold.isPersonal ? eq(users.personalHouseholdId, hid) : undefined,
+      ctx.activeHousehold.isMain
+        ? or(isNull(users.homeHouseholdId), eq(users.homeHouseholdId, hid))
+        : or(eq(users.homeHouseholdId, hid), eq(users.personalHouseholdId, hid)),
     ))
     .orderBy(users.createdAt);
 

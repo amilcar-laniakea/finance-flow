@@ -1,5 +1,5 @@
 import { db, incomes, incomeSources, users, incomeDistributions } from "@repo/db";
-import { isNull, desc, eq, inArray, and, ne } from "drizzle-orm";
+import { isNull, desc, eq, inArray, and, ne, or } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getInstanceContext } from "@/lib/getInstanceContext";
 import { IncomesClient } from "./_components/IncomesClient";
@@ -10,18 +10,21 @@ export default async function IncomesPage() {
 
   const hid = ctx.activeHousehold.id;
 
-  const [rows, sources, members] = await Promise.all([
+  const [rows, sources] = await Promise.all([
     db.select().from(incomes).where(and(isNull(incomes.deletedAt), eq(incomes.householdId, hid))).orderBy(desc(incomes.occurredAt)).limit(200),
     db.select({ id: incomeSources.id, name: incomeSources.name, color: incomeSources.color })
       .from(incomeSources).where(and(eq(incomeSources.isActive, true), eq(incomeSources.householdId, hid))).orderBy(incomeSources.name),
-    db.select({ id: users.id, nickname: users.fullName }).from(users)
-      .where(and(
-        isNull(users.deletedAt),
-        ne(users.role, "superadmin"),
-        ctx.activeHousehold.isPersonal ? eq(users.personalHouseholdId, hid) : undefined,
-      ))
-      .orderBy(users.fullName),
   ]);
+
+  const members = await db.select({ id: users.id, nickname: users.fullName }).from(users)
+    .where(and(
+      isNull(users.deletedAt),
+      ne(users.role, "superadmin"),
+      ctx.activeHousehold.isMain
+        ? or(isNull(users.homeHouseholdId), eq(users.homeHouseholdId, hid))
+        : or(eq(users.homeHouseholdId, hid), eq(users.personalHouseholdId, hid)),
+    ))
+    .orderBy(users.fullName);
 
   const incomeIds = rows.map((r) => r.id);
   const allDists = incomeIds.length > 0

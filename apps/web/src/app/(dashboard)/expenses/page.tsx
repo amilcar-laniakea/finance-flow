@@ -20,7 +20,7 @@ export default async function ExpensesPage() {
 
   const hid = ctx.activeHousehold.id;
 
-  const [rows, members, rawSources, rawTypes] = await Promise.all([
+  const [rows, rawSources, rawTypes] = await Promise.all([
     db
       .select()
       .from(expenses)
@@ -28,20 +28,7 @@ export default async function ExpensesPage() {
       .orderBy(desc(expenses.occurredAt))
       .limit(200),
     db
-      .select({ id: users.id, nickname: users.fullName })
-      .from(users)
-      .where(and(
-        isNull(users.deletedAt),
-        ne(users.role, "superadmin"),
-        ctx.activeHousehold.isPersonal ? eq(users.personalHouseholdId, hid) : undefined,
-      ))
-      .orderBy(users.fullName),
-    db
-      .select({
-        id: incomeSources.id,
-        name: incomeSources.name,
-        color: incomeSources.color,
-      })
+      .select({ id: incomeSources.id, name: incomeSources.name, color: incomeSources.color })
       .from(incomeSources)
       .where(and(eq(incomeSources.isActive, true), eq(incomeSources.householdId, hid)))
       .orderBy(incomeSources.name),
@@ -49,6 +36,18 @@ export default async function ExpensesPage() {
       .where(or(isNull(expenseTypes.householdId), eq(expenseTypes.householdId, hid)))
       .orderBy(expenseTypes.name),
   ]);
+
+  const members = await db
+    .select({ id: users.id, nickname: users.fullName })
+    .from(users)
+    .where(and(
+      isNull(users.deletedAt),
+      ne(users.role, "superadmin"),
+      ctx.activeHousehold.isMain
+        ? or(isNull(users.homeHouseholdId), eq(users.homeHouseholdId, hid))
+        : or(eq(users.homeHouseholdId, hid), eq(users.personalHouseholdId, hid)),
+    ))
+    .orderBy(users.fullName);
 
   // Compute balance per source
   const sources = await Promise.all(

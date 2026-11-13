@@ -10,6 +10,9 @@ export const users = pgTable("users", {
   // UUID of this user's personal household; NULL means no personal instance activated yet.
   // No .references() here to avoid circular import with households.ts.
   personalHouseholdId: uuid("personal_household_id"),
+  // Household where this user was created (NULL for Clerk-authenticated users, who belong to main).
+  // Admin-created users (clerkId = null) must have this set to their origin household.
+  homeHouseholdId: uuid("home_household_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
